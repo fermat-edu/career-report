@@ -79,6 +79,14 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
 .photo-big .addph{padding:14px 16px;width:100%}
+.up{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--field)}
+.up .upbtn{font:inherit;font-weight:700;font-size:14px;color:#fff;background:var(--forest);border:0;border-radius:10px;padding:12px 14px;cursor:pointer}
+.up .upbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.up .uphint{font-size:12.5px;color:var(--muted)}
+.pdfchip{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px}
+.pdfchip .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.pdfchip .tagpdf{font-size:11px;font-weight:700;color:#fff;background:var(--brand);border-radius:4px;padding:1px 6px}
+.pdfchip button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:3px 8px;cursor:pointer}
 
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .bar-in{max-width:820px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -125,11 +133,11 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 <div class="wrap" id="app">
   <header class="intro">
     <h1>페르마 진로탐구 보고서</h1>
-    <p>빈칸을 채우고, 찾아본 화면은 캡처해서 사진으로 넣으세요. 다 쓰면 아래 노란 버튼으로 PDF를 만들어 카카오톡으로 보내면 됩니다.</p>
+    <p>빈칸을 채우고, 찾아본 화면은 캡처해서 사진으로 넣으세요. 다 쓰면 아래 노란 버튼을 누르세요. PDF가 만들어지고 선생님께 자동으로 제출돼요.</p>
     <ul class="steps">
       <li><b>①</b> 1부 진로 컨설팅 1~5단계</li>
       <li><b>②</b> 2부 직업·학과·학교탐구, 학습계획</li>
-      <li><b>③</b> PDF 만들기 → 카카오톡 전송</li>
+      <li><b>③</b> PDF 만들고 제출 → 선생님께 자동 제출</li>
     </ul>
     <p class="note">사진 넣기는 휴대폰이면 갤러리, 컴퓨터면 파일 선택 창이 열려요. 쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
   </header>
@@ -140,7 +148,9 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
   <div class="bar-in">
     <div class="status" id="status">작성 중 · 자동 저장됨</div>
     <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
-    <button class="btn primary" id="pdfBtn" type="button">PDF 만들기</button>
+    <button class="btn" id="submitBtn" type="button" hidden>다시 제출</button>
+    <button class="btn" id="saveBtn" type="button" hidden>파일로 저장</button>
+    <button class="btn primary" id="pdfBtn" type="button">PDF 만들고 제출</button>
   </div>
 </div>
 
@@ -156,8 +166,10 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
 (function(){
+const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
 const ADIGA="https://www.adiga.kr/EgovPageLink.do?link=EipMain";
 const CAREER="https://www.career.go.kr";
 const WORKNET="https://know.work.go.kr";
@@ -199,7 +211,7 @@ const PAGES_=[
  {id:"s3",num:"3단계",title:"진로 컨설팅",tag:"SECTION 1 - 3",color:"c-dark",brand:true,items:[
    {kind:"note",html:'<a href="'+CAREER+'" target="_blank" rel="noopener">커리어넷(www.career.go.kr)</a>에서 진로 흥미 탐색 검사를 하고 결과를 적으세요.'},
    {kind:"grid",id:"s3_res",title:"결과표 상위 유형 및 직업",cols:["흥미 유형","해당 직업"]},
-   {kind:"free",id:"s3_shot",rows:0,hint:"커리어넷 결과 화면 캡처",photoOnly:true},
+   {kind:"pdfup",id:"s3_shot"},
    {kind:"grid",id:"s3_want",title:"희망 직업",cols:["직업명","직업 선택 이유"]},
    {kind:"note",html:'좋아하는 직업 하나를 골라 <a href="'+CAREER+'" target="_blank" rel="noopener">주니어 직업정보</a>나 <a href="'+WORKNET+'" target="_blank" rel="noopener">한국직업정보시스템</a>에서 찾아보세요.'},
    L("s3_job","고른 직업"),
@@ -227,6 +239,7 @@ const idb=(()=>{let p=null;return ()=>p||(p=new Promise((res,rej)=>{try{const r=
 function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);}));}
 function idbGet(k){return idb().then(db=>new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
 let phDirty=false;
+let PDFS=[]; // [{name, buf:ArrayBuffer, pages}]
 function saveNow(){
   clearTimeout(saveT); if(!dirty) return; dirty=false;
   let textOk=true; try{localStorage.setItem(KEY,JSON.stringify({v:S.v}));}catch(e){textOk=false;}
@@ -248,6 +261,15 @@ function photoBox(id,big){
     list.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="첨부한 캡처 '+(i+1)+'"><button type="button" data-del="'+id+'" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+
     '<button type="button" class="addph" data-add="'+id+'">+ 캡처 사진 넣기</button></div>';
 }
+function pdfUpBox(){
+  const ph=S.ph.s3_shot||[];
+  return '<div class="up" id="upBox"><span class="qt">커리어넷 결과지</span>'+
+    '<button type="button" class="upbtn" id="upBtn">커리어넷 결과지 파일 업로드</button>'+
+    '<span class="uphint">커리어넷에서 내려받은 결과지 PDF를 올리면 완성된 보고서 맨 뒤에 그대로 붙어요. 캡처 사진도 올릴 수 있어요.</span>'+
+    PDFS.map((f,i)=>'<div class="pdfchip"><span class="tagpdf">PDF</span><span class="nm">'+esc(f.name)+(f.pages?' ('+f.pages+'쪽)':'')+'</span><button type="button" data-delpdf="'+i+'">삭제</button></div>').join("")+
+    (ph.length?'<div class="photos">'+ph.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="결과지 캡처 '+(i+1)+'"><button type="button" data-del="s3_shot" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+'</div>':'')+
+  '</div>';
+}
 function field(it){
   if(it.type==="line") return '<input type="text" id="f_'+it.id+'" data-id="'+it.id+'" value="'+esc(val(it.id))+'" placeholder="'+esc(it.hint||"")+'">';
   return '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint||"")+'">'+esc(val(it.id))+'</textarea>';
@@ -266,6 +288,7 @@ function itemEdit(it){
     case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
     case "free": return '<div class="q">'+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint)+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
     case "grid": return gridEdit(it);
+    case "pdfup": return pdfUpBox();
   }
   return "";
 }
@@ -307,11 +330,36 @@ function shrink(file){return new Promise((res,rej)=>{const r=new FileReader(); r
   const M=1400, k=Math.min(1,M/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
   const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",0.82));}; img.src=r.result;}; r.readAsDataURL(file);});}
 
+/* 커리어넷 결과지 업로드 */
+const upPicker=document.createElement("input"); upPicker.type="file"; upPicker.accept="application/pdf,.pdf,image/*"; upPicker.multiple=true; upPicker.hidden=true; document.body.appendChild(upPicker);
+function refreshUp(){const b=document.getElementById("upBox"); if(b) b.outerHTML=pdfUpBox();}
+form.addEventListener("click",e=>{
+  if(e.target.closest("#upBtn")){upPicker.value=""; upPicker.click(); return;}
+  const d=e.target.closest("[data-delpdf]"); if(d){PDFS.splice(+d.dataset.delpdf,1); idbPut("pdfs",PDFS).catch(()=>{}); refreshUp(); resetSend();}
+});
+upPicker.addEventListener("change",async()=>{
+  let bad=0;
+  for(const f of upPicker.files){
+    const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);
+    if(isPdf){
+      try{ const buf=await f.arrayBuffer(); let pages=0;
+        if(window.PDFLib){ const d=await PDFLib.PDFDocument.load(buf.slice(0),{ignoreEncryption:true}); pages=d.getPageCount(); }
+        PDFS.push({name:f.name,buf,pages}); }
+      catch(e){ bad++; }
+    } else if(f.type.startsWith("image/")){
+      try{ (S.ph.s3_shot=S.ph.s3_shot||[]).push(await shrink(f)); phDirty=true; }catch(e){ bad++; }
+    } else bad++;
+  }
+  refreshUp(); resetSend(); dirty=true; saveNow();
+  idbPut("pdfs",PDFS).then(()=>{ if(!bad) statusEl.textContent="결과지를 올렸어요 · 저장됨"; }).catch(()=>{ statusEl.textContent="결과지는 올렸지만 저장 공간이 부족해요. 창을 닫지 말고 PDF까지 만들어 주세요."; });
+  if(bad) statusEl.textContent="열 수 없는 파일이 있었어요. PDF나 사진 파일인지 확인해 주세요.";
+});
+
 /* 모두 지우기 (페이지 안에서 확인) */
 const resetArea=document.getElementById("resetArea");
 resetArea.addEventListener("click",e=>{
   if(e.target.id==="resetBtn"){resetArea.innerHTML='<span class="confirm">정말 지울까요? <button class="btn" id="rYes" type="button">지우기</button><button class="btn" id="rNo" type="button">취소</button></span>';}
-  else if(e.target.id==="rYes"){S={v:{},ph:{}}; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); renderForm(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
+  else if(e.target.id==="rYes"){S={v:{},ph:{}}; PDFS=[]; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); idbPut("pdfs",[]).catch(()=>{}); renderForm(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
   else if(e.target.id==="rNo"){resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>';}
 });
 
@@ -325,6 +373,7 @@ function itemPdf(it){
     case "note": return '<p class="note">'+it.html+'</p>';
     case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
     case "free": return '<div class="q">'+(it.photoOnly?(S.ph[it.id]&&S.ph[it.id].length?'<div class="qt">'+esc(it.hint)+'</div>':''):'<div class="box" style="min-height:120px">'+T(it.id)+'</div>')+imgs(it.id)+'</div>';
+    case "pdfup": return ((S.ph.s3_shot||[]).length?'<div class="q"><div class="qt">커리어넷 결과지</div>'+imgs("s3_shot")+'</div>':'')+(PDFS.length?'<p class="note">※ 커리어넷 결과지 PDF는 이 보고서 맨 뒤에 붙어 있어요.</p>':'');
     case "grid": return '<div class="grid2"><table><thead><tr><th>'+esc(it.title)+'</th>'+it.cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+
       [1,2].map(r=>'<tr><td class="rh">'+r+'순위</td>'+it.cols.map((c,ci)=>'<td>'+T(it.id+"_"+r+"_"+ci)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
   }
@@ -346,10 +395,17 @@ let dlPromise=null;
 try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.claude.use("downloads").catch(()=>null); }catch(e){}
 const pdfBtn=document.getElementById("pdfBtn");
 let lastPdf=null;
+const saveBtn=document.getElementById("saveBtn");
+function resetSend(){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들고 제출";lastPdf=null;saveBtn.hidden=true;const sb=document.getElementById("submitBtn"); if(sb) sb.hidden=true;}
+saveBtn.addEventListener("click",()=>{ if(lastPdf) download(lastPdf.blob,lastPdf.name); });
 
 pdfBtn.addEventListener("click",async()=>{
   if(lastPdf && pdfBtn.dataset.mode==="send"){ return deliver(lastPdf.blob,lastPdf.name); }
   if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
+  if(!val("name").trim()||!val("grade").trim()||!val("cls").trim()){
+    statusEl.textContent="맨 위(1단계)의 학년·반·이름을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.";
+    const f=document.getElementById(!val("grade").trim()?"f_grade":!val("cls").trim()?"f_cls":"f_name"); if(f){f.scrollIntoView({block:"center"}); f.focus();} return;
+  }
   pdfBtn.disabled=true;
   try{
     const stage=document.getElementById("pdfStage");
@@ -368,17 +424,31 @@ pdfBtn.addEventListener("click",async()=>{
     }
     stage.innerHTML="";
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    lastPdf={blob:pdf.output("blob"),name:"진로탐구보고서_"+nm+".pdf",shots};
-    pdfBtn.textContent="PDF 저장·보내기"; pdfBtn.dataset.mode="send";
-    statusEl.textContent="PDF 완성! 버튼을 눌러 저장하거나 카카오톡으로 보내세요.";
-    await deliver(lastPdf.blob,lastPdf.name);
+    let blob=pdf.output("blob"), failed=0;
+    if(PDFS.length){
+      if(!window.PDFLib){ failed=PDFS.length; }
+      else{
+        statusEl.textContent="커리어넷 결과지를 맨 뒤에 붙이는 중…";
+        const out=await PDFLib.PDFDocument.load(pdf.output("arraybuffer"));
+        for(const f of PDFS){
+          try{ const src=await PDFLib.PDFDocument.load(f.buf.slice(0),{ignoreEncryption:true});
+            const pg=await out.copyPages(src,src.getPageIndices()); pg.forEach(x=>out.addPage(x)); }
+          catch(e){ failed++; }
+        }
+        blob=new Blob([await out.save()],{type:"application/pdf"});
+      }
+    }
+    lastPdf={blob,name:"진로탐구보고서_"+nm+".pdf",shots,failed};
+    pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
+    await submitToTeacher();
+    if(false) statusEl.textContent=failed?"PDF 완성! 단, 결과지 파일 "+failed+"개는 붙이지 못했어요(보호된 파일). 결과지는 캡처 사진으로 올려 주세요.":"PDF 완성! 노란 '카톡으로 보내기'를 누르고 카카오톡을 고르세요.";
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
   finally{ pdfBtn.disabled=false; }
 });
 // 내용을 고치면 PDF를 다시 만들도록
-form.addEventListener("input",()=>{ if(pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
-form.addEventListener("click",e=>{ if(e.target.closest("[data-del]")&&pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
-picker.addEventListener("change",()=>{ if(pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
+form.addEventListener("input",()=>{ if(pdfBtn.dataset.mode==="send"){resetSend();} });
+form.addEventListener("click",e=>{ if(e.target.closest("[data-del]")&&pdfBtn.dataset.mode==="send"){resetSend();} });
+picker.addEventListener("change",()=>{ if(pdfBtn.dataset.mode==="send"){resetSend();} });
 
 async function deliver(blob,name){
   // 1) Claude 앱/웹에서 열었을 때
@@ -390,15 +460,49 @@ async function deliver(blob,name){
   }
   // 링크로 연 페이지에서 파일 저장이 막힌 경우: 쪽별 이미지로 보여주기
   if(window.claude){ showShots(); return; }
-  // 2) 휴대폰·태블릿 브라우저: 바로 카카오톡으로 공유 (컴퓨터는 3번 다운로드)
-  const touch=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
-  try{ const file=new File([blob],name,{type:"application/pdf"});
-    if(touch&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); statusEl.textContent="공유 화면에서 카카오톡을 골라 보내세요."; return; } }
-  catch(e){ if(e&&e.name==="AbortError"){statusEl.textContent="공유를 취소했어요. 다시 누르면 보낼 수 있어요.";return;} }
-  // 3) 일반 다운로드
+  // 2) 공유 화면 열기 → 카카오톡 선택 (휴대폰·태블릿·지원되는 컴퓨터)
+  let file=null; try{ file=new File([blob],name,{type:"application/pdf"}); }catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:name}); statusEl.textContent="보냈어요! 공유 화면에서 카카오톡이 안 보였다면 '파일로 저장' 후 카톡에 첨부하세요."; return; }
+    catch(e){
+      if(e&&e.name==="AbortError"){ statusEl.textContent="공유를 닫았어요. 공유 목록에 카카오톡이 없으면 '파일로 저장'을 누른 뒤 카톡 채팅방에 첨부하세요."; return; }
+      if(e&&e.name==="NotAllowedError"){ statusEl.textContent="'카톡으로 보내기'를 한 번 더 눌러 주세요."; return; }
+    }
+  }
+  // 3) 공유가 안 되는 브라우저(대부분의 컴퓨터): 파일로 저장
+  download(blob,name);
+}
+/* 선생님께 제출 */
+const submitBtn=document.getElementById("submitBtn");
+function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
+async function submitToTeacher(){
+  if(!lastPdf) return;
+  submitBtn.hidden=true;
+  statusEl.textContent="선생님께 제출하는 중… 창을 닫지 마세요.";
+  const label=(val("grade").trim()+"학년"+val("cls").trim()+"반_"+val("name").trim()).replace(/\s+/g,"");
+  const body=JSON.stringify({label,pdf:await blobToB64(lastPdf.blob)});
+  const warn=lastPdf.failed?" (결과지 파일 "+lastPdf.failed+"개는 보호된 파일이라 붙이지 못했어요. 캡처 사진으로 올린 뒤 다시 만들어 주세요.)":"";
+  try{
+    const r=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||"fail");
+    lastPdf.submitted=true;
+    statusEl.textContent="✅ 선생님께 제출 완료! ("+label+")"+warn+" 카톡으로도 보내려면 노란 버튼을 누르세요.";
+  }catch(e){
+    if(e instanceof TypeError){ // 응답을 못 읽은 경우: 한 번 더 보내기
+      try{ await fetch(SUBMIT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+        lastPdf.submitted=true; statusEl.textContent="✅ 선생님께 제출했어요. ("+label+")"+warn; return; }catch(_){}
+    }
+    submitBtn.hidden=false;
+    statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요.";
+  }
+}
+submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await submitToTeacher();}finally{submitBtn.disabled=false;}});
+
+function download(blob,name){
   try{ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000);
-    statusEl.textContent="다운로드 폴더에 저장했어요. 카카오톡 채팅방에서 파일 첨부로 보내세요."; }
-  catch(e){ statusEl.textContent="이 화면에서는 저장할 수 없어요. 선생님께 받은 파일(HTML)을 휴대폰 브라우저로 열어 주세요."; }
+    statusEl.textContent="다운로드 폴더에 저장했어요. PC 카카오톡 채팅방에 파일을 끌어다 놓으면 보내져요."; }
+  catch(e){ statusEl.textContent="이 브라우저에서는 저장할 수 없어요. 크롬이나 사파리로 열어 주세요."; }
 }
 
 function showShots(){
@@ -411,6 +515,7 @@ document.getElementById("shotClose").addEventListener("click",()=>{document.getE
 
 renderForm();
 // 저장해 둔 사진 불러오기 (예전 버전에서 localStorage에 넣은 사진도 옮김)
+idbGet("pdfs").then(l=>{ if(Array.isArray(l)&&l.length){ PDFS=l.filter(x=>x&&x.buf); refreshUp(); } }).catch(()=>{});
 idbGet("photos").then(ph=>{
   if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); }
   else if(Object.keys(S.ph).length){ dirty=true; phDirty=true; saveNow(); }
