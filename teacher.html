@@ -90,6 +90,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 
   <section id="main" hidden>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div class="years" id="forms" role="group" aria-label="페이지 종류"></div>
       <div class="years" id="years" role="group" aria-label="연도"></div>
       <div class="stats" id="stats"></div>
       <div class="toolbar">
@@ -122,10 +123,11 @@ async function api(params){
 }
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
-  const base=f.name.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,"");
+  let base=f.name.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,""), form="진로탐구보고서";
+  const fi=base.indexOf("__"); if(fi>0){ form=base.slice(0,fi); base=base.slice(fi+2); }
   const m=base.match(/(\d+)\s*학년\D*?(\d+)\s*반_?(.*)$/);
   const g=m?+m[1]:99, c=m?+m[2]:99, nm=m?(m[3]||"이름없음").replace(/_/g," "):base.replace(/_/g," ");
-  return {...f,who:nm,key:base,g,c,cls:m?g+"학년 "+c+"반":"기타",year:new Date(f.time).getFullYear()};
+  return {...f,who:nm,key:form+"|"+base,g,c,cls:m?g+"학년 "+c+"반":"기타",year:new Date(f.time).getFullYear(),form};
 }
 const fmtTime=t=>{const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");};
 const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+"MB":Math.max(1,Math.round(b/1024))+"KB";
@@ -145,12 +147,14 @@ $("pw").addEventListener("keydown",e=>{if(e.key==="Enter"){KEY=$("pw").value.tri
 $("logoutBtn").addEventListener("click",()=>{KEY="";FILES=[];try{sessionStorage.removeItem("teacherKey");}catch(e){} $("main").hidden=true;$("loginCard").hidden=false;$("logoutBtn").hidden=true;$("pw").value="";$("loginMsg").textContent="";});
 
 /* 목록 */
-let YEAR=null;
-function years(){ return [...new Set(FILES.map(f=>f.year))].sort((x,y)=>y-x); }
+let YEAR=null, FORM=null;
+function forms(){ return [...new Set(FILES.map(f=>f.form))].sort((a,b)=>a==="진로탐구보고서"?-1:b==="진로탐구보고서"?1:a.localeCompare(b,"ko")); }
+const FF=()=>FILES.filter(f=>f.form===FORM);
+function years(){ return [...new Set(FF().map(f=>f.year))].sort((x,y)=>y-x); }
 function visible(){
   const q=$("q").value.replace(/\s/g,"");
   const latest={}; FILES.forEach(f=>{ const k=f.year+"|"+f.key; if(!latest[k]||latest[k].time<f.time) latest[k]=f; });
-  return FILES.filter(f=>f.year===YEAR).map(f=>({...f,isNew:latest[f.year+"|"+f.key]===f}))
+  return FF().filter(f=>f.year===YEAR).map(f=>({...f,isNew:latest[f.year+"|"+f.key]===f}))
     .filter(f=>(!$("onlyNew").checked||f.isNew)&&(!q||f.key.replace(/\s/g,"").includes(q)||f.cls.replace(/\s/g,"").includes(q)));
 }
 function byClass(v){
@@ -164,9 +168,11 @@ function itemHtml(f){
 }
 const openState={};
 function render(){
+  const fs=forms(); if(!fs.includes(FORM)) FORM=fs[0]||"진로탐구보고서";
+  $("forms").innerHTML=fs.length>1?fs.map(x=>'<button type="button" class="year" data-form="'+esc(x)+'" aria-pressed="'+(x===FORM)+'">'+esc(x)+'</button>').join(""):"";
   const ys=years(); if(!ys.includes(YEAR)) YEAR=ys[0]||new Date().getFullYear();
   $("years").innerHTML=(ys.length?ys:[YEAR]).map(y=>'<button type="button" class="year" data-year="'+y+'" aria-pressed="'+(y===YEAR)+'">'+y+'년</button>').join("");
-  const inYear=FILES.filter(f=>f.year===YEAR);
+  const inYear=FF().filter(f=>f.year===YEAR);
   const nStu=new Set(inYear.map(f=>f.key)).size, nCls=new Set(inYear.map(f=>f.cls)).size;
   $("stats").innerHTML='<span><b>'+nCls+'</b>개 반</span><span><b>'+nStu+'</b>명 제출</span><span><b>'+inYear.length+'</b>개 파일</span>';
   const groups=byClass(visible());
@@ -179,6 +185,7 @@ function render(){
   ).join(""):'<div class="empty">'+(inYear.length?"찾는 학생이 없어요.":"아직 제출한 학생이 없어요. 학생이 'PDF 만들고 제출'을 누르면 여기에 나타나요.")+'</div>';
   $("zipBtn").textContent=YEAR+"년 전체 받기"; $("zipBtn").disabled=!groups.length;
 }
+$("forms").addEventListener("click",e=>{const b=e.target.closest("[data-form]"); if(!b)return; FORM=b.dataset.form; YEAR=null; render();});
 $("years").addEventListener("click",e=>{const b=e.target.closest("[data-year]"); if(!b)return; YEAR=+b.dataset.year; render();});
 $("list").addEventListener("toggle",e=>{const d=e.target; if(d.classList&&d.classList.contains("cls")) openState[YEAR+d.dataset.cls]=d.open;},true);
 $("q").addEventListener("input",render); $("onlyNew").addEventListener("change",render);
@@ -193,7 +200,7 @@ async function getBlob(id){ const j=await api({action:"file",id});
 function saveBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); }
 
 $("list").addEventListener("click",async e=>{
-  const z=e.target.closest("[data-zipcls]"); if(z){ e.preventDefault(); const cls=z.dataset.zipcls; zipFiles(visible().filter(f=>f.cls===cls),YEAR+"년_"+cls.replace(/\s/g,""),false,z); return; }
+  const z=e.target.closest("[data-zipcls]"); if(z){ e.preventDefault(); const cls=z.dataset.zipcls; zipFiles(visible().filter(f=>f.cls===cls),FORM+"_"+YEAR+"년_"+cls.replace(/\s/g,""),false,z); return; }
   const b=e.target.closest("[data-act]"); if(!b) return;
   const item=b.closest(".item"), id=item.dataset.id, f=FILES.find(x=>x.id===id); if(!f) return;
   const act=b.dataset.act;
@@ -228,7 +235,7 @@ async function zipFiles(v,label,folders,btn){
   $("msg").textContent=(v.length-fail)+"개 파일을 "+zname+"로 받았어요."+(fail?" ("+fail+"개는 가져오지 못했어요)":"");
   $("prog").hidden=true; bar.style.width="0"; btn.disabled=false;
 }
-$("zipBtn").addEventListener("click",()=>zipFiles(visible(),YEAR+"년_전체",true,$("zipBtn")));
+$("zipBtn").addEventListener("click",()=>zipFiles(visible(),FORM+"_"+YEAR+"년_전체",true,$("zipBtn")));
 
 if(KEY) login(); else $("pw").focus();
 })();
