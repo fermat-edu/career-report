@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>페르마 진로탐구 보고서</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: worksheet pages stacked like a printed booklet; label column + writing column; sticky bottom bar for PDF */
+:root{
+  --bg:#eef3f3; --paper:#ffffff; --ink:#1f2a2c; --muted:#5f6d70; --line:#c9d3d4; --field:#f7fafa;
+  --teal:#3e9ca7; --coral:#f2827f; --green:#3fa88f; --yellow:#e9b93a; --forest:#1f5c2b; --brand:#e32626;
+  --accent:#2f8792;
+  --display:"Do Hyeon","Noto Sans KR",sans-serif;
+  --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1b; --paper:#1d2526; --ink:#e7eeee; --muted:#9fb0b2; --line:#36454a; --field:#232d2f; --accent:#6cc3cc; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a1b; --paper:#1d2526; --ink:#e7eeee; --muted:#9fb0b2; --line:#36454a; --field:#232d2f; --accent:#6cc3cc; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:820px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+.intro{display:flex;flex-direction:column;gap:6px}
+.intro h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,38px);margin:0;letter-spacing:.01em;text-wrap:balance}
+.intro p{margin:0;color:var(--muted)}
+.steps{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding:0;margin:4px 0 0;list-style:none}
+.steps li b{color:var(--accent)}
+
+.part{font-family:var(--display);font-size:22px;color:#fff;padding:12px 18px;border-radius:4px 40px 4px 40px}
+.part small{font-family:var(--body);font-size:12px;opacity:.85;margin-left:8px}
+.part.p1{background:var(--teal)} .part.p2{background:#4a4f52}
+
+.page{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.ribbon{font-family:var(--display);color:#fff;font-size:26px;padding:10px 20px 12px;border-radius:0 0 60px 0;width:fit-content;max-width:100%;display:flex;align-items:baseline;gap:10px}
+.ribbon .num{font-size:34px}
+.ribbon .tag{font-family:var(--body);font-size:12px;opacity:.9}
+.c-coral{background:var(--coral)} .c-green{background:var(--green)} .c-yellow{background:var(--yellow)} .c-dark{background:#4a4f52} .c-teal{background:var(--teal)}
+.brandline{padding:14px 20px 0;font-size:14px;color:var(--muted)} .brandline b{color:var(--brand)}
+.pbody{padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
+.subhead{font-weight:700;font-size:15px;border-top:1.5px solid var(--ink);border-bottom:1px solid var(--line);padding:8px 2px;margin-top:4px}
+.note{font-size:13px;color:var(--muted)} .note a{color:var(--accent);word-break:break-all}
+
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.info label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:4px}
+
+.tbl{border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.row{display:grid;grid-template-columns:150px minmax(0,1fr);border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .lab{font-weight:700;font-size:14px;padding:12px 10px;border-right:1px solid var(--line);display:flex;align-items:center}
+.row .val{padding:8px 10px;min-width:0;display:flex;flex-direction:column;gap:8px}
+
+.q{display:flex;flex-direction:column;gap:6px}
+.q .qt{font-weight:700;font-size:14.5px}
+.q .qs{font-weight:400;color:var(--muted);font-size:13px}
+
+input[type=text],textarea{width:100%;box-sizing:border-box;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+textarea{resize:vertical;min-height:70px}
+.q textarea{border-radius:16px}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.count{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.count.over{color:var(--brand);font-weight:700}
+
+.grid2{overflow-x:auto}
+.grid2 table{width:100%;border-collapse:collapse;min-width:460px}
+.grid2 th{background:var(--forest);color:#fff;font-weight:500;font-size:13px;padding:7px}
+.grid2 td{border:1px solid var(--line);padding:5px;font-size:13.5px;vertical-align:middle}
+.grid2 td.rh{font-weight:700;text-align:center;white-space:nowrap}
+
+.photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.addph{font:inherit;font-size:13px;color:var(--accent);background:transparent;border:1.5px dashed var(--accent);border-radius:8px;padding:6px 12px;cursor:pointer}
+.addph:hover{background:var(--field)}
+.addph:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.thumb{position:relative;width:96px;height:72px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--field)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
+.photo-big .addph{padding:14px 16px;width:100%}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-in{max-width:820px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status{flex:1 1 200px;min-width:0;font-size:13px;color:var(--muted)}
+.btn{font:inherit;font-weight:700;border-radius:10px;padding:11px 18px;cursor:pointer;border:1px solid var(--line);background:var(--field);color:var(--ink)}
+.btn.primary{background:#fee500;border-color:#e6cf00;color:#191600}
+.btn:disabled{opacity:.6;cursor:wait}
+.confirm{display:flex;gap:8px;align-items:center;font-size:13px}
+
+.shots{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shots-head{max-width:820px;margin:0 auto 14px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;font-size:14px}
+.shots-head span{color:var(--muted)}
+.shot-list{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.shot-list figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.shot-list img{width:100%;border:1px solid var(--line);-webkit-touch-callout:default;user-select:auto}
+.shot-list figcaption{font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:560px){
+  .row{grid-template-columns:1fr}
+  .row .lab{border-right:0;padding:10px 10px 0}
+  .info{grid-template-columns:1fr 1fr} .info label:last-child{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- PDF render (always light, fixed width) ---------- */
+#pdfStage{position:fixed;left:-12000px;top:0;width:794px;pointer-events:none}
+.pp{width:794px;box-sizing:border-box;background:#fff;color:#1f2a2c;font-family:var(--body);font-size:14px;line-height:1.6;padding-bottom:36px}
+.pp .ribbon{color:#fff} .pp .pbody{padding:22px 48px} .pp .brandline{color:#5f6d70;padding:28px 48px 0}
+.pp .row .lab,.pp .row{border-color:#c9d3d4} .pp .tbl,.pp .subhead{border-top-color:#1f2a2c;border-bottom-color:#1f2a2c}
+.pp .subhead{border-bottom-color:#c9d3d4}
+.pp .row{grid-template-columns:150px 1fr}
+.pp .txt{white-space:pre-wrap;word-break:break-word;min-height:22px}
+.pp .box{border:1px solid #9aa6a8;border-radius:14px;padding:10px 14px;min-height:56px;white-space:pre-wrap;word-break:break-word}
+.pp .pimgs{display:flex;flex-direction:column;gap:8px}
+.pp .pimgs img{max-width:100%;max-height:900px;object-fit:contain;align-self:flex-start;border:1px solid #c9d3d4}
+.pp .grid2 table{min-width:0} .pp .grid2 td{border-color:#9aa6a8}
+.pp .infoline{display:flex;gap:40px;font-weight:700;font-size:14px}
+.pp .infoline span{font-weight:400}
+.pp .note{color:#5f6d70} .pp .note a{color:#2f5fcf}
+.cover{height:1123px;display:flex;flex-direction:column;justify-content:center;gap:40px}
+.cover .band{background:#58a8b4;color:#fff;font-family:var(--display);font-size:52px;padding:30px 70px;border-radius:0 0 0 0;display:flex;justify-content:space-between;align-items:center}
+.cover .who{text-align:center;font-size:20px;font-weight:700;color:#1f2a2c}
+</style>
+
+<div class="wrap" id="app">
+  <header class="intro">
+    <h1>페르마 진로탐구 보고서</h1>
+    <p>빈칸을 채우고, 찾아본 화면은 캡처해서 사진으로 넣으세요. 다 쓰면 아래 노란 버튼으로 PDF를 만들어 카카오톡으로 보내면 됩니다.</p>
+    <ul class="steps">
+      <li><b>①</b> 1부 진로 컨설팅 1~5단계</li>
+      <li><b>②</b> 2부 직업·학과·학교탐구, 학습계획</li>
+      <li><b>③</b> PDF 만들기 → 카카오톡 전송</li>
+    </ul>
+    <p class="note">사진 넣기는 휴대폰이면 갤러리, 컴퓨터면 파일 선택 창이 열려요. 쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
+  </header>
+  <div id="form"></div>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="status" id="status">작성 중 · 자동 저장됨</div>
+    <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
+    <button class="btn primary" id="pdfBtn" type="button">PDF 만들기</button>
+  </div>
+</div>
+
+<div id="pdfStage" aria-hidden="true"></div>
+
+<div id="shots" class="shots" hidden role="dialog" aria-label="완성된 보고서">
+  <div class="shots-head">
+    <div><b>보고서 완성!</b><br><span>각 쪽 사진을 <b>길게 눌러 ‘이미지 저장’</b>한 뒤, 카카오톡 채팅방에서 사진으로 보내세요. (컴퓨터는 마우스 오른쪽 → 이미지 저장)</span></div>
+    <button class="btn" id="shotClose" type="button">닫기</button>
+  </div>
+  <div class="shot-list" id="shotList"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const ADIGA="https://www.adiga.kr/EgovPageLink.do?link=EipMain";
+const CAREER="https://www.career.go.kr";
+const WORKNET="https://know.work.go.kr";
+
+/* ---------- 양식 정의 ---------- */
+const L=(id,label,o={})=>({kind:"row",type:"line",id,label,...o});
+const A=(id,label,rows,o={})=>({kind:"row",type:"area",id,label,rows,photo:true,...o});
+const Q=(id,label,sub,rows,o={})=>({kind:"q",id,label,sub,rows,...o});
+
+const PAGES_=[
+ {part:1},
+ {cover:true},
+ {id:"p1",num:"01.",title:"직업탐구",color:"c-coral",infoPdf:true,items:[
+   L("job","직업"),L("core","핵심능력"),L("similar","유사직업명"),L("major_cert","관련학과/관련자격"),
+   A("work","하는 일",5),A("apt","적성 및 흥미",5),A("prep","준비방법",5),A("employ","취업현황",5)]},
+ {id:"p2",num:"02.",title:"학과탐구",color:"c-green",items:[
+   L("dept","희망학과"),A("dept_over","학과개요",4),A("dept_feat","학과특성",4),A("dept_apt","흥미와 적성",4),
+   A("hs_subj","관련 고교 교과목",5),A("explore","진로 탐색 활동",6),A("video","관련동영상",3,{hint:"영상 제목이나 주소를 적어 주세요"})]},
+ {id:"p3",num:"03.",title:"학교탐구",color:"c-yellow",items:[
+   L("school","학교",{hint:"예: ○○대학교 ○○학과"}),
+   {kind:"note",html:'대학·학과 정보는 어디가에서 찾아보세요: <a href="'+ADIGA+'" target="_blank" rel="noopener">'+ADIGA+'</a>'},
+   {kind:"free",id:"school_info",rows:6,hint:"학교·학과 정보를 정리하거나, 찾은 화면을 캡처해서 넣으세요"},
+   {kind:"sub",text:"학생부교과전형 교과 영역 평가방법 및 2026학년도 전형결과"},
+   {kind:"free",id:"school_result",rows:6,hint:"평가방법과 전형결과(경쟁률, 합격 성적 등)를 적거나 캡처해서 넣으세요"}]},
+ {id:"p4",num:"04.",title:"학습계획",color:"c-coral",items:[
+   {kind:"sub",text:"과목별 진로계획 2027년",center:true},
+   A("plan_math","수학",4),A("plan_sci","과학",4),A("plan_eng","영어",4),A("plan_soc","사회",4),A("plan_act","진로탐색활동",6)]},
+ {part:2},
+ {id:"s1",num:"1단계",title:"진로 컨설팅",tag:"SECTION 1 - 1",color:"c-dark",brand:true,info:true,items:[
+   Q("s1_like","1. 본인이 가장 좋아하는 일 3가지를 써 주세요.","",3),
+   Q("s1_most","2. 본인이 가장 많이 하는 일 3가지를 써 주세요.","위의 문항 답과 같아도 괜찮아요.",3),
+   Q("s1_good","3. 본인이 가장 잘하는 일 3가지를 써 주세요.","위의 문항 답과 같아도 괜찮아요.",3),
+   Q("s1_keep","4. 본인이 앞으로도 계속 하고 싶은 일 3가지를 써 주세요.","위의 문항 답과 같아도 괜찮아요.",3)]},
+ {id:"s2",num:"2단계",title:"진로 컨설팅",tag:"SECTION 1 - 2",color:"c-dark",brand:true,items:[
+   Q("s2_hate","1. 본인이 가장 싫어하는 일 3가지를 써 주세요.","",3),
+   Q("s2_env","2. 본인이 가장 싫어하는 환경 3가지를 써 주세요.","",3),
+   Q("s2_ppl","3. 본인이 가장 만나기 싫은 사람(유형) 3가지를 써 주세요.","",3),
+   Q("s2_why","4. 3번 문항 답에 이유가 있으면 적어 주세요.","",3)]},
+ {id:"s3",num:"3단계",title:"진로 컨설팅",tag:"SECTION 1 - 3",color:"c-dark",brand:true,items:[
+   {kind:"note",html:'<a href="'+CAREER+'" target="_blank" rel="noopener">커리어넷(www.career.go.kr)</a>에서 진로 흥미 탐색 검사를 하고 결과를 적으세요.'},
+   {kind:"grid",id:"s3_res",title:"결과표 상위 유형 및 직업",cols:["흥미 유형","해당 직업"]},
+   {kind:"free",id:"s3_shot",rows:0,hint:"커리어넷 결과 화면 캡처",photoOnly:true},
+   {kind:"grid",id:"s3_want",title:"희망 직업",cols:["직업명","직업 선택 이유"]},
+   {kind:"note",html:'좋아하는 직업 하나를 골라 <a href="'+CAREER+'" target="_blank" rel="noopener">주니어 직업정보</a>나 <a href="'+WORKNET+'" target="_blank" rel="noopener">한국직업정보시스템</a>에서 찾아보세요.'},
+   L("s3_job","고른 직업"),
+   A("s3_work","하는 일",3),A("s3_major","관련 학과 및 자격증",3),A("s3_skill","업무 수행 능력 및 필요 지식",3),
+   A("s3_val","직업 성격, 흥미, 가치관",3),A("s3_cons","직업의 단점",3)]},
+ {id:"s4",num:"4단계",title:"진로 컨설팅",tag:"SECTION 1 - 4",color:"c-dark",brand:true,items:[
+   Q("s4_fit","1. 탐색한 직업이 내가 가장 좋아하고, 많이 하고, 잘하고, 계속하고 싶은 일 중 어디에 해당하는지 확인하고, 내 직업으로 적당한지 판단해 보세요.","1단계(SECTION 1-1)를 참고하세요.",7),
+   Q("s4_over","2. 탐색한 직업이 내가 싫어하는 일, 싫어하는 환경, 만나기 싫은 사람과 관련이 있는지 확인하고, 하나라도 관련이 있다면 극복할 방법을 생각해 보세요.","2단계(SECTION 1-2)를 참고하세요.",7)]},
+ {id:"s5",num:"5단계",title:"진로 컨설팅",tag:"SECTION 1 - 5",color:"c-dark",brand:true,items:[
+   Q("s5_path","1. 학생 진로","",2),
+   Q("s5_reason","2. 진로 희망 사유 (200자)","",8,{limit:200})]}
+];
+// 순서: 학생용1(진로 컨설팅) → 학생용2(직업탐구 보고서)
+const iP2=PAGES_.findIndex(p=>p.part===2);
+const PAGES=[{cover:true},...PAGES_.slice(iP2),...PAGES_.slice(0,iP2).filter(p=>!p.cover)];
+
+/* ---------- 상태 ---------- */
+const KEY="fermat-career-report-v1";
+let S={v:{},ph:{}};
+try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&o.v) S={v:o.v||{},ph:o.ph||{}};}}catch(e){}
+let saveT=null, dirty=false;
+const statusEl=document.getElementById("status");
+/* 사진은 용량이 큰 IndexedDB에, 글은 localStorage에 저장 */
+const idb=(()=>{let p=null;return ()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open("fermat-report",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}));})();
+function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);}));}
+function idbGet(k){return idb().then(db=>new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
+let phDirty=false;
+function saveNow(){
+  clearTimeout(saveT); if(!dirty) return; dirty=false;
+  let textOk=true; try{localStorage.setItem(KEY,JSON.stringify({v:S.v}));}catch(e){textOk=false;}
+  if(phDirty){ phDirty=false; idbPut("photos",S.ph).then(()=>{statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"사진만 저장됨 · 글 자동 저장이 안 되는 환경이에요";})
+     .catch(()=>{statusEl.textContent=textOk?"글은 저장됨 · 사진은 저장이 안 돼요 (창을 닫지 마세요)":"자동 저장이 안 되는 환경이에요. 창을 닫지 말고 끝까지 작성하세요.";}); }
+  else statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"자동 저장이 안 되는 환경이에요. 창을 닫지 말고 끝까지 작성하세요.";
+}
+function save(photo){dirty=true; if(photo){phDirty=true; return saveNow();} clearTimeout(saveT); saveT=setTimeout(saveNow,300);}
+// 창을 닫거나 다른 앱으로 넘어갈 때 바로 저장
+addEventListener("pagehide",saveNow);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveNow();});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const val=id=>S.v[id]||"";
+
+/* ---------- 입력 화면 ---------- */
+function photoBox(id,big){
+  const list=S.ph[id]||[];
+  return '<div class="photos'+(big?' photo-big':'')+'" data-ph="'+id+'">'+
+    list.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="첨부한 캡처 '+(i+1)+'"><button type="button" data-del="'+id+'" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+
+    '<button type="button" class="addph" data-add="'+id+'">+ 캡처 사진 넣기</button></div>';
+}
+function field(it){
+  if(it.type==="line") return '<input type="text" id="f_'+it.id+'" data-id="'+it.id+'" value="'+esc(val(it.id))+'" placeholder="'+esc(it.hint||"")+'">';
+  return '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint||"")+'">'+esc(val(it.id))+'</textarea>';
+}
+function gridEdit(it){
+  return '<div class="grid2"><table><thead><tr><th>'+esc(it.title)+'</th>'+it.cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+
+   [1,2].map(r=>'<tr><td class="rh">'+r+'순위</td>'+it.cols.map((c,ci)=>{const id=it.id+"_"+r+"_"+ci;return '<td><input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" aria-label="'+esc(it.title+" "+r+"순위 "+c)+'"></td>';}).join("")+'</tr>').join("")+'</tbody></table></div>';
+}
+function itemEdit(it){
+  switch(it.kind){
+    case "row": return '<div class="row"><label class="lab" for="f_'+it.id+'">'+esc(it.label)+'</label><div class="val">'+field(it)+(it.photo?photoBox(it.id):"")+'</div></div>';
+    case "q": return '<div class="q"><label class="qt" for="f_'+it.id+'">'+esc(it.label)+(it.sub?' <span class="qs">('+esc(it.sub)+')</span>':'')+'</label>'+
+      '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'"'+(it.limit?' data-limit="'+it.limit+'"':'')+'>'+esc(val(it.id))+'</textarea>'+
+      (it.limit?'<div class="count" id="cnt_'+it.id+'"></div>':'')+'</div>';
+    case "note": return '<p class="note">'+it.html+'</p>';
+    case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
+    case "free": return '<div class="q">'+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint)+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
+    case "grid": return gridEdit(it);
+  }
+  return "";
+}
+function groupItems(items,fn){ // 연속된 row들은 표로 묶기
+  let h="",buf=[];
+  const flush=()=>{if(buf.length){h+='<div class="tbl">'+buf.join("")+'</div>';buf=[];}};
+  items.forEach(it=>{const s=fn(it); if(it.kind==="row") buf.push(s); else {flush(); h+=s;}});
+  flush(); return h;
+}
+function renderForm(){
+  let h="";
+  PAGES.forEach(p=>{
+    if(p.cover) return;
+    if(p.part===1){h+='<div class="part p1">2. 페르마 직업탐구 보고서<small>직업 · 학과 · 학교 · 학습계획</small></div>';return;}
+    if(p.part===2){h+='<div class="part p2">1. 진로 컨설팅<small>1단계 ~ 5단계</small></div>';return;}
+    h+='<section class="page">'+(p.brand?'<div class="brandline"><b>Fermat</b> education</div>':'')+
+      '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
+    if(p.info) h+='<div class="info">'+[["grade","학년"],["cls","반"],["name","이름"]].map(([id,l])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'"></label>').join("")+'</div>';
+    h+=groupItems(p.items,itemEdit)+'</div></section>';
+  });
+  document.getElementById("form").innerHTML=h;
+  document.querySelectorAll("[data-limit]").forEach(updCount);
+}
+function updCount(t){const c=document.getElementById("cnt_"+t.dataset.id); if(!c)return; const n=t.value.replace(/\s/g,"").length, L=+t.dataset.limit; c.textContent="공백 제외 "+n+" / "+L+"자"; c.classList.toggle("over",n>L);}
+
+const form=document.getElementById("form");
+form.addEventListener("input",e=>{const t=e.target; if(!t.dataset.id)return; S.v[t.dataset.id]=t.value; if(t.dataset.limit)updCount(t); save();});
+
+/* 사진 */
+const picker=document.createElement("input"); picker.type="file"; picker.accept="image/*"; picker.multiple=true; picker.hidden=true; document.body.appendChild(picker);
+let pickFor=null;
+form.addEventListener("click",e=>{
+  const a=e.target.closest("[data-add]"); if(a){pickFor=a.dataset.add; picker.value=""; picker.click(); return;}
+  const d=e.target.closest("[data-del]"); if(d){const id=d.dataset.del; (S.ph[id]||[]).splice(+d.dataset.i,1); refreshPh(id); save(true);}
+});
+picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent="사진을 읽지 못했어요. 다른 사진으로 해 보세요.";} } refreshPh(id); save(true);});
+function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id,box.classList.contains("photo-big"));}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader(); r.onerror=rej; r.onload=()=>{const img=new Image(); img.onerror=rej; img.onload=()=>{
+  const M=1400, k=Math.min(1,M/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",0.82));}; img.src=r.result;}; r.readAsDataURL(file);});}
+
+/* 모두 지우기 (페이지 안에서 확인) */
+const resetArea=document.getElementById("resetArea");
+resetArea.addEventListener("click",e=>{
+  if(e.target.id==="resetBtn"){resetArea.innerHTML='<span class="confirm">정말 지울까요? <button class="btn" id="rYes" type="button">지우기</button><button class="btn" id="rNo" type="button">취소</button></span>';}
+  else if(e.target.id==="rYes"){S={v:{},ph:{}}; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); renderForm(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
+  else if(e.target.id==="rNo"){resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>';}
+});
+
+/* ---------- PDF용 화면 ---------- */
+const T=id=>esc(val(id));
+function imgs(id){const l=S.ph[id]||[]; return l.length?'<div class="pimgs">'+l.map(s=>'<img src="'+s+'">').join("")+'</div>':"";}
+function itemPdf(it){
+  switch(it.kind){
+    case "row": return '<div class="row"><div class="lab">'+esc(it.label)+'</div><div class="val"><div class="txt" style="min-height:'+(it.type==="line"?22:Math.max(44,it.rows*20))+'px">'+T(it.id)+'</div>'+(it.photo?imgs(it.id):"")+'</div></div>';
+    case "q": return '<div class="q"><div class="qt">'+esc(it.label)+(it.sub?' <span class="qs">('+esc(it.sub)+')</span>':'')+'</div><div class="box" style="min-height:'+Math.max(56,it.rows*22)+'px">'+T(it.id)+'</div></div>';
+    case "note": return '<p class="note">'+it.html+'</p>';
+    case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
+    case "free": return '<div class="q">'+(it.photoOnly?(S.ph[it.id]&&S.ph[it.id].length?'<div class="qt">'+esc(it.hint)+'</div>':''):'<div class="box" style="min-height:120px">'+T(it.id)+'</div>')+imgs(it.id)+'</div>';
+    case "grid": return '<div class="grid2"><table><thead><tr><th>'+esc(it.title)+'</th>'+it.cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+
+      [1,2].map(r=>'<tr><td class="rh">'+r+'순위</td>'+it.cols.map((c,ci)=>'<td>'+T(it.id+"_"+r+"_"+ci)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
+  }
+  return "";
+}
+function buildPdfPages(){
+  const who=[val("grade")&&val("grade")+"학년",val("cls")&&val("cls")+"반",val("name")].filter(Boolean).join(" ");
+  return PAGES.filter(p=>!p.part).map(p=>{
+    if(p.cover) return '<div class="pp cover"><div class="band"><span>페르마 진로탐구 보고서</span><span style="font-size:40px">⚛</span></div><div class="who">'+esc(who)+'</div></div>';
+    let h='<div class="pp">'+(p.brand?'<div class="brandline"><b style="color:#e32626">Fermat</b> education</div>':'')+
+      '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
+    if(p.info||p.infoPdf) h+='<div class="infoline"><div>학년 : <span>'+T("grade")+'</span></div><div>반 : <span>'+T("cls")+'</span></div><div>이름 : <span>'+T("name")+'</span></div></div>';
+    return h+groupItems(p.items,itemPdf)+'</div></div>';
+  });
+}
+
+/* ---------- PDF 만들기 & 보내기 ---------- */
+let dlPromise=null;
+try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.claude.use("downloads").catch(()=>null); }catch(e){}
+const pdfBtn=document.getElementById("pdfBtn");
+let lastPdf=null;
+
+pdfBtn.addEventListener("click",async()=>{
+  if(lastPdf && pdfBtn.dataset.mode==="send"){ return deliver(lastPdf.blob,lastPdf.name); }
+  if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
+  pdfBtn.disabled=true;
+  try{
+    const stage=document.getElementById("pdfStage");
+    stage.innerHTML=buildPdfPages().join("");
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+    await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
+    const {jsPDF}=window.jspdf; let pdf=null; const shots=[];
+    const pages=[...stage.children];
+    for(let i=0;i<pages.length;i++){
+      statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
+      const cv=await html2canvas(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false});
+      const w=210, h=Math.max(297,cv.height*w/cv.width);
+      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p");
+      const jp=cv.toDataURL("image/jpeg",0.9); shots.push(jp);
+      pdf.addImage(jp,"JPEG",0,0,w,cv.height*w/cv.width);
+    }
+    stage.innerHTML="";
+    const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
+    lastPdf={blob:pdf.output("blob"),name:"진로탐구보고서_"+nm+".pdf",shots};
+    pdfBtn.textContent="PDF 저장·보내기"; pdfBtn.dataset.mode="send";
+    statusEl.textContent="PDF 완성! 버튼을 눌러 저장하거나 카카오톡으로 보내세요.";
+    await deliver(lastPdf.blob,lastPdf.name);
+  }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
+  finally{ pdfBtn.disabled=false; }
+});
+// 내용을 고치면 PDF를 다시 만들도록
+form.addEventListener("input",()=>{ if(pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
+form.addEventListener("click",e=>{ if(e.target.closest("[data-del]")&&pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
+picker.addEventListener("change",()=>{ if(pdfBtn.dataset.mode==="send"){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들기";lastPdf=null;} });
+
+async function deliver(blob,name){
+  // 1) Claude 앱/웹에서 열었을 때
+  const dl=dlPromise?await dlPromise:null;
+  if(dl){
+    try{ await dl.save({filename:name,data:blob}); statusEl.textContent="저장 완료! 휴대폰이면 공유 화면에서 카카오톡을 고르거나, 저장한 파일을 카카오톡 채팅방에 첨부하세요."; return; }
+    catch(e){ if(e&&e.code==="declined"){statusEl.textContent="저장을 취소했어요. 다시 누르면 저장할 수 있어요.";return;}
+      if(e&&e.code==="rate_limited"){statusEl.textContent="잠시 후 다시 눌러 주세요.";return;} }
+  }
+  // 링크로 연 페이지에서 파일 저장이 막힌 경우: 쪽별 이미지로 보여주기
+  if(window.claude){ showShots(); return; }
+  // 2) 휴대폰·태블릿 브라우저: 바로 카카오톡으로 공유 (컴퓨터는 3번 다운로드)
+  const touch=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+  try{ const file=new File([blob],name,{type:"application/pdf"});
+    if(touch&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); statusEl.textContent="공유 화면에서 카카오톡을 골라 보내세요."; return; } }
+  catch(e){ if(e&&e.name==="AbortError"){statusEl.textContent="공유를 취소했어요. 다시 누르면 보낼 수 있어요.";return;} }
+  // 3) 일반 다운로드
+  try{ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000);
+    statusEl.textContent="다운로드 폴더에 저장했어요. 카카오톡 채팅방에서 파일 첨부로 보내세요."; }
+  catch(e){ statusEl.textContent="이 화면에서는 저장할 수 없어요. 선생님께 받은 파일(HTML)을 휴대폰 브라우저로 열어 주세요."; }
+}
+
+function showShots(){
+  const ov=document.getElementById("shots"); const list=document.getElementById("shotList");
+  list.innerHTML=(lastPdf&&lastPdf.shots||[]).map((s,i)=>'<figure><img src="'+s+'" alt="보고서 '+(i+1)+'쪽"><figcaption>'+(i+1)+'쪽</figcaption></figure>').join("");
+  ov.hidden=false; document.getElementById("shotClose").focus();
+  statusEl.textContent="완성된 보고서를 사진으로 저장해 카카오톡으로 보내세요.";
+}
+document.getElementById("shotClose").addEventListener("click",()=>{document.getElementById("shots").hidden=true;});
+
+renderForm();
+// 저장해 둔 사진 불러오기 (예전 버전에서 localStorage에 넣은 사진도 옮김)
+idbGet("photos").then(ph=>{
+  if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); }
+  else if(Object.keys(S.ph).length){ dirty=true; phDirty=true; saveNow(); }
+}).catch(()=>{});
+if(Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
+})();
+</script>
+
+</body>
+</html>
