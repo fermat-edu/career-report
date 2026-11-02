@@ -150,6 +150,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
     <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
     <button class="btn" id="submitBtn" type="button" hidden>다시 제출</button>
     <button class="btn" id="saveBtn" type="button" hidden>파일로 저장</button>
+    <button class="btn" id="addPdfBtn" type="button" title="올린 PDF는 보고서 맨 뒤에 붙어요">PDF 추가</button>
     <button class="btn primary" id="pdfBtn" type="button">PDF 만들고 제출</button>
   </div>
 </div>
@@ -263,9 +264,9 @@ function photoBox(id,big){
 }
 function pdfUpBox(){
   const ph=S.ph.s3_shot||[];
-  return '<div class="up" id="upBox"><span class="qt">커리어넷 결과지</span>'+
+  return '<div class="up" id="upBox"><span class="qt">커리어넷 결과지 · 추가 PDF</span>'+
     '<button type="button" class="upbtn" id="upBtn">커리어넷 결과지 파일 업로드</button>'+
-    '<span class="uphint">커리어넷에서 내려받은 결과지 PDF를 올리면 완성된 보고서 맨 뒤에 그대로 붙어요. 캡처 사진도 올릴 수 있어요.</span>'+
+    '<span class="uphint">커리어넷에서 내려받은 결과지 PDF를 올리면 완성된 보고서 맨 뒤에 그대로 붙어요. 캡처 사진도 올릴 수 있어요. 다른 PDF는 아래 "PDF 추가" 버튼으로도 넣을 수 있어요.</span>'+
     PDFS.map((f,i)=>'<div class="pdfchip"><span class="tagpdf">PDF</span><span class="nm">'+esc(f.name)+(f.pages?' ('+f.pages+'쪽)':'')+'</span><button type="button" data-delpdf="'+i+'">삭제</button></div>').join("")+
     (ph.length?'<div class="photos">'+ph.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="결과지 캡처 '+(i+1)+'"><button type="button" data-del="s3_shot" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+'</div>':'')+
   '</div>';
@@ -332,14 +333,14 @@ function shrink(file){return new Promise((res,rej)=>{const r=new FileReader(); r
 
 /* 커리어넷 결과지 업로드 */
 const upPicker=document.createElement("input"); upPicker.type="file"; upPicker.accept="application/pdf,.pdf,image/*"; upPicker.multiple=true; upPicker.hidden=true; document.body.appendChild(upPicker);
-function refreshUp(){const b=document.getElementById("upBox"); if(b) b.outerHTML=pdfUpBox();}
+function refreshUp(){const b=document.getElementById("upBox"); if(b) b.outerHTML=pdfUpBox(); if(typeof updAddBtn==="function") updAddBtn();}
 form.addEventListener("click",e=>{
   if(e.target.closest("#upBtn")){upPicker.value=""; upPicker.click(); return;}
   const d=e.target.closest("[data-delpdf]"); if(d){PDFS.splice(+d.dataset.delpdf,1); idbPut("pdfs",PDFS).catch(()=>{}); refreshUp(); resetSend();}
 });
-upPicker.addEventListener("change",async()=>{
+async function handleUpload(fileList){
   let bad=0;
-  for(const f of upPicker.files){
+  for(const f of fileList){
     const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);
     if(isPdf){
       try{ const buf=await f.arrayBuffer(); let pages=0;
@@ -353,13 +354,19 @@ upPicker.addEventListener("change",async()=>{
   refreshUp(); resetSend(); dirty=true; saveNow();
   idbPut("pdfs",PDFS).then(()=>{ if(!bad) statusEl.textContent="결과지를 올렸어요 · 저장됨"; }).catch(()=>{ statusEl.textContent="결과지는 올렸지만 저장 공간이 부족해요. 창을 닫지 말고 PDF까지 만들어 주세요."; });
   if(bad) statusEl.textContent="열 수 없는 파일이 있었어요. PDF나 사진 파일인지 확인해 주세요.";
-});
+}
+upPicker.addEventListener("change",()=>handleUpload(upPicker.files));
+/* 아래 바의 PDF 추가 버튼 */
+const addPicker=document.createElement("input"); addPicker.type="file"; addPicker.accept="application/pdf,.pdf"; addPicker.multiple=true; addPicker.hidden=true; document.body.appendChild(addPicker);
+document.getElementById("addPdfBtn").addEventListener("click",()=>{addPicker.value=""; addPicker.click();});
+addPicker.addEventListener("change",()=>handleUpload(addPicker.files));
+function updAddBtn(){const b=document.getElementById("addPdfBtn"); if(b) b.textContent=PDFS.length?"PDF 추가 ("+PDFS.length+")":"PDF 추가";}
 
 /* 모두 지우기 (페이지 안에서 확인) */
 const resetArea=document.getElementById("resetArea");
 resetArea.addEventListener("click",e=>{
   if(e.target.id==="resetBtn"){resetArea.innerHTML='<span class="confirm">정말 지울까요? <button class="btn" id="rYes" type="button">지우기</button><button class="btn" id="rNo" type="button">취소</button></span>';}
-  else if(e.target.id==="rYes"){S={v:{},ph:{}}; PDFS=[]; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); idbPut("pdfs",[]).catch(()=>{}); renderForm(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
+  else if(e.target.id==="rYes"){S={v:{},ph:{}}; PDFS=[]; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); idbPut("pdfs",[]).catch(()=>{}); renderForm(); updAddBtn(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
   else if(e.target.id==="rNo"){resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>';}
 });
 
