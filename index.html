@@ -479,7 +479,8 @@ async function submitToTeacher(){
   if(!lastPdf) return;
   submitBtn.hidden=true;
   statusEl.textContent="선생님께 제출하는 중… 창을 닫지 마세요.";
-  const label=(val("grade").trim()+"학년"+val("cls").trim()+"반_"+val("name").trim()).replace(/\s+/g,"");
+  const num=x=>{const t=val(x).trim(); return (t.match(/\d+/)||[t])[0];};
+  const label=(num("grade")+"학년"+num("cls")+"반_"+val("name").trim()).replace(/\s+/g,"");
   const body=JSON.stringify({label,pdf:await blobToB64(lastPdf.blob)});
   const warn=lastPdf.failed?" (결과지 파일 "+lastPdf.failed+"개는 보호된 파일이라 붙이지 못했어요. 캡처 사진으로 올린 뒤 다시 만들어 주세요.)":"";
   try{
