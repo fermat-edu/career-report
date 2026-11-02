@@ -150,7 +150,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
     <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
     <button class="btn" id="submitBtn" type="button" hidden>다시 제출</button>
     <button class="btn" id="saveBtn" type="button" hidden>파일로 저장</button>
-    <button class="btn" id="addPdfBtn" type="button" title="올린 PDF는 보고서 맨 뒤에 붙어요">PDF 추가</button>
+    <button class="btn" id="addPdfBtn" type="button" title="올린 PDF는 보고서 맨 뒤에 붙어요">커리어넷 검사지 PDF 추가</button>
     <button class="btn primary" id="pdfBtn" type="button">PDF 만들고 제출</button>
   </div>
 </div>
@@ -266,7 +266,7 @@ function pdfUpBox(){
   const ph=S.ph.s3_shot||[];
   return '<div class="up" id="upBox"><span class="qt">커리어넷 결과지 · 추가 PDF</span>'+
     '<button type="button" class="upbtn" id="upBtn">커리어넷 결과지 파일 업로드</button>'+
-    '<span class="uphint">커리어넷에서 내려받은 결과지 PDF를 올리면 완성된 보고서 맨 뒤에 그대로 붙어요. 캡처 사진도 올릴 수 있어요. 다른 PDF는 아래 "PDF 추가" 버튼으로도 넣을 수 있어요.</span>'+
+    '<span class="uphint">커리어넷에서 내려받은 결과지 PDF를 올리면 완성된 보고서 맨 뒤에 그대로 붙어요. 캡처 사진도 올릴 수 있어요. 다른 PDF는 아래 "커리어넷 검사지 PDF 추가" 버튼으로도 넣을 수 있어요.</span>'+
     PDFS.map((f,i)=>'<div class="pdfchip"><span class="tagpdf">PDF</span><span class="nm">'+esc(f.name)+(f.pages?' ('+f.pages+'쪽)':'')+'</span><button type="button" data-delpdf="'+i+'">삭제</button></div>').join("")+
     (ph.length?'<div class="photos">'+ph.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="결과지 캡처 '+(i+1)+'"><button type="button" data-del="s3_shot" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+'</div>':'')+
   '</div>';
@@ -360,7 +360,7 @@ upPicker.addEventListener("change",()=>handleUpload(upPicker.files));
 const addPicker=document.createElement("input"); addPicker.type="file"; addPicker.accept="application/pdf,.pdf"; addPicker.multiple=true; addPicker.hidden=true; document.body.appendChild(addPicker);
 document.getElementById("addPdfBtn").addEventListener("click",()=>{addPicker.value=""; addPicker.click();});
 addPicker.addEventListener("change",()=>handleUpload(addPicker.files));
-function updAddBtn(){const b=document.getElementById("addPdfBtn"); if(b) b.textContent=PDFS.length?"PDF 추가 ("+PDFS.length+")":"PDF 추가";}
+function updAddBtn(){const b=document.getElementById("addPdfBtn"); if(b) b.textContent=PDFS.length?"커리어넷 검사지 PDF 추가 ("+PDFS.length+")":"커리어넷 검사지 PDF 추가";}
 
 /* 모두 지우기 (페이지 안에서 확인) */
 const resetArea=document.getElementById("resetArea");
