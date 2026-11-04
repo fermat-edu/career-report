@@ -221,7 +221,7 @@ $("list").addEventListener("click",async e=>{
   if(act==="delNo"){ render(); return; }
   if(act==="move"){
     item.querySelector(".acts").innerHTML='<span class="confirm"><select data-mg aria-label="학년">'+[7,8,9].map(g=>'<option'+(g===f.g?' selected':'')+'>'+g+'</option>').join("")+'</select>'+
-      '<select data-mc aria-label="반">'+CLASSES.map(c=>'<option'+(c===f.c?' selected':'')+'>'+c+'</option>').join("")+'</select>반 '+
+      '<select data-mc aria-label="반">'+[...CLASSES,...[...new Set(FILES.map(x=>x.c))].filter(c=>c!=="기타"&&!CLASSES.includes(c)).sort((x,y)=>x.localeCompare(y,"ko",{numeric:true}))].map(c=>'<option'+(c===f.c?' selected':'')+'>'+c+'</option>').join("")+'</select>반 '+
       '<button class="btn small" data-act="moveYes">옮기기</button><button class="btn small" data-act="delNo">취소</button></span>'; return; }
   if(act==="moveYes"){
     const g=item.querySelector("[data-mg]").value, c=item.querySelector("[data-mc]").value;
