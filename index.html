@@ -326,7 +326,7 @@ form.addEventListener("click",e=>{
   const d=e.target.closest("[data-del]"); if(d){const id=d.dataset.del; (S.ph[id]||[]).splice(+d.dataset.i,1); refreshPh(id); save(true);}
 });
 picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent="사진을 읽지 못했어요. 다른 사진으로 해 보세요.";} } refreshPh(id); save(true);});
-function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id,box.classList.contains("photo-big"));}
+function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id,box.classList.contains("photo-big")); else if(id==="s3_shot") refreshUp();}
 function shrink(file){return new Promise((res,rej)=>{const r=new FileReader(); r.onerror=rej; r.onload=()=>{const img=new Image(); img.onerror=rej; img.onload=()=>{
   const M=1400, k=Math.min(1,M/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
   const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",0.82));}; img.src=r.result;}; r.readAsDataURL(file);});}
