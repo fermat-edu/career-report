@@ -18,6 +18,7 @@
 }
 @media (prefers-color-scheme: dark){:root{--bg:#141a1b;--paper:#1d2526;--ink:#e7eeee;--muted:#9fb0b2;--line:#36454a;--field:#232d2f;--accent:#6cc3cc;--new:#5fcf96;--old:#748487;color-scheme:dark}}
 html,body{margin:0}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .wrap{max-width:900px;margin:0 auto;padding-block:24px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -52,6 +53,8 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .item.isold .who{color:var(--muted);font-weight:500}
 .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .confirm{display:flex;gap:6px;align-items:center;font-size:12.5px}
+.confirm{flex-wrap:wrap}
+.confirm select{font:inherit;font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .empty{color:var(--muted);text-align:center;padding:30px 10px}
 .progress{height:6px;background:var(--field);border-radius:99px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
@@ -173,8 +176,8 @@ function byClass(v){
 }
 function itemHtml(f){
   return '<div class="item'+(f.isNew?'':' isold')+'" data-id="'+f.id+'"><div><div class="who">'+esc(f.who)+'</div>'+
-    '<div class="meta">'+'<span>'+fmtTime(f.time)+' 제출</span><span>'+fmtSize(f.size)+'</span><span class="pill '+(f.isNew?'new">최신':'old">이전 제출')+'</span></div></div>'+
-    '<div class="acts"><button class="btn small" data-act="open">열기</button><button class="btn small" data-act="dl">받기</button><button class="btn small danger" data-act="del">삭제</button></div></div>';
+    '<div class="meta">'+(f.cls==="기타"?'<span>원래 이름: '+esc(f.name)+'</span>':'')+'<span>'+fmtTime(f.time)+' 제출</span><span>'+fmtSize(f.size)+'</span><span class="pill '+(f.isNew?'new">최신':'old">이전 제출')+'</span></div></div>'+
+    '<div class="acts"><button class="btn small" data-act="open">열기</button><button class="btn small" data-act="dl">받기</button><button class="btn small" data-act="move">반 바꾸기</button><button class="btn small danger" data-act="del">삭제</button></div></div>';
 }
 const openState={};
 function render(){
@@ -216,6 +219,23 @@ $("list").addEventListener("click",async e=>{
   const act=b.dataset.act;
   if(act==="del"){ item.querySelector(".acts").innerHTML='<span class="confirm">지울까요? <button class="btn small danger" data-act="delYes">지우기</button><button class="btn small" data-act="delNo">취소</button></span>'; return; }
   if(act==="delNo"){ render(); return; }
+  if(act==="move"){
+    item.querySelector(".acts").innerHTML='<span class="confirm"><select data-mg aria-label="학년">'+[7,8,9].map(g=>'<option'+(g===f.g?' selected':'')+'>'+g+'</option>').join("")+'</select>'+
+      '<select data-mc aria-label="반">'+CLASSES.map(c=>'<option'+(c===f.c?' selected':'')+'>'+c+'</option>').join("")+'</select>반 '+
+      '<button class="btn small" data-act="moveYes">옮기기</button><button class="btn small" data-act="delNo">취소</button></span>'; return; }
+  if(act==="moveYes"){
+    const g=item.querySelector("[data-mg]").value, c=item.querySelector("[data-mc]").value;
+    const label=(f.form!=="진로탐구보고서"?f.form+"__":"")+g+"학년_"+g+c+"반_"+f.who.replace(/\s+/g,"");
+    b.disabled=true; b.textContent="옮기는 중…"; $("msg").className="msg";
+    try{
+      const j=await api({action:"file",id});
+      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({label,pdf:j.pdf})});
+      const k=await r.json(); if(!k.ok) throw new Error(k.error||"fail");
+      await api({action:"delete",id});
+      FILES=(await api({action:"list"})).files.map(parse); render();
+      $("msg").textContent=f.who+" 학생을 "+g+c+"반으로 옮겼어요.";
+    }catch(_){ $("msg").className="msg err"; $("msg").textContent="옮기지 못했어요. 새로고침 후 다시 해 주세요."; render(); }
+    return; }
   if(act==="delYes"){ b.disabled=true; try{ await api({action:"delete",id}); FILES=FILES.filter(x=>x.id!==id); render(); $("msg").className="msg"; $("msg").textContent=f.who+" 파일을 지웠어요. (구글 드라이브 휴지통에서 30일 안에 되살릴 수 있어요)"; }
     catch(_){ $("msg").className="msg err"; $("msg").textContent="지우지 못했어요. 다시 해 주세요."; render(); } return; }
   // 열기: 새 창을 먼저 열어 두어야 팝업 차단을 피할 수 있어요
