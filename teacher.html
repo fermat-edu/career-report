@@ -125,7 +125,7 @@ async function api(params){
   return j;
 }
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르"]; // 반 순서
+const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르","데카르트2"]; // 반 순서
 function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
   let base=f.name.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,""), form="진로탐구보고서";
   const fi=base.indexOf("__"); if(fi>0){ form=base.slice(0,fi); base=base.slice(fi+2); }
