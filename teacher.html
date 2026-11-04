@@ -98,7 +98,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
       <div class="stats" id="stats"></div>
       <div class="toolbar">
         <input class="search" type="search" id="q" placeholder="이름이나 반으로 찾기 (예: 홍길동, 9탈레스)" aria-label="찾기">
-        <label class="chk"><input type="checkbox" id="onlyNew" checked> 학생별 최신 제출만</label>
+        <label class="chk" hidden><input type="checkbox" id="onlyNew" checked> 학생별 최신 제출만</label>
         <button class="btn" id="refreshBtn" type="button">새로고침</button>
         <button class="btn primary" id="zipBtn" type="button">전체 받기</button>
       </div>
@@ -145,10 +145,20 @@ const fmtTime=t=>{const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" 
 const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+"MB":Math.max(1,Math.round(b/1024))+"KB";
 
 /* 로그인 */
+/* 같은 학생이 여러 번 내면 마지막 것만 남기고 이전 것은 지움(구글 드라이브 휴지통으로) */
+async function dedupe(){
+  const groups={}; FILES.forEach(f=>{ const k=f.year+"|"+f.key; (groups[k]=groups[k]||[]).push(f); });
+  const old=[]; Object.values(groups).forEach(g=>{ if(g.length>1){ g.sort((a,b)=>b.time-a.time); old.push(...g.slice(1)); } });
+  if(!old.length) return;
+  let done=0; $("msg").className="msg";
+  for(const f of old){ $("msg").textContent="이전 제출 정리 중… ("+(done+1)+"/"+old.length+")";
+    try{ await api({action:"delete",id:f.id}); FILES=FILES.filter(x=>x.id!==f.id); done++; }catch(e){} }
+  $("msg").textContent="같은 학생이 다시 낸 "+done+"개는 마지막 제출로 덮어썼어요. (이전 파일은 구글 드라이브 휴지통에 30일 보관)";
+}
 async function login(){
   $("loginBtn").disabled=true; $("loginMsg").className="msg"; $("loginMsg").textContent="여는 중…";
   try{ const j=await api({action:"list"}); try{sessionStorage.setItem("teacherKey",KEY);}catch(e){}
-    FILES=j.files.map(parse); $("loginCard").hidden=true; $("main").hidden=false; $("logoutBtn").hidden=false; render(); }
+    FILES=j.files.map(parse); $("loginCard").hidden=true; $("main").hidden=false; $("logoutBtn").hidden=false; render(); await dedupe(); render(); }
   catch(e){ $("loginMsg").className="msg err";
     $("loginMsg").textContent=e.message==="password"?"비밀번호가 맞지 않아요. 구글 스크립트에 넣은 비밀번호를 확인해 주세요.":"제출함에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
     try{sessionStorage.removeItem("teacherKey");}catch(_){} }
@@ -203,7 +213,7 @@ $("years").addEventListener("click",e=>{const b=e.target.closest("[data-year]");
 $("list").addEventListener("toggle",e=>{const d=e.target; if(d.classList&&d.classList.contains("cls")) openState[YEAR+d.dataset.cls]=d.open;},true);
 $("q").addEventListener("input",render); $("onlyNew").addEventListener("change",render);
 $("refreshBtn").addEventListener("click",async()=>{ $("refreshBtn").disabled=true; $("msg").className="msg"; $("msg").textContent="새로 불러오는 중…";
-  try{ FILES=(await api({action:"list"})).files.map(parse); render(); $("msg").textContent="최신 목록이에요 · "+fmtTime(Date.now()); }
+  try{ FILES=(await api({action:"list"})).files.map(parse); $("msg").textContent="최신 목록이에요 · "+fmtTime(Date.now()); await dedupe(); render(); }
   catch(e){ $("msg").className="msg err"; $("msg").textContent="불러오지 못했어요. 다시 눌러 주세요."; }
   finally{ $("refreshBtn").disabled=false; } });
 
@@ -232,7 +242,7 @@ $("list").addEventListener("click",async e=>{
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({label,pdf:j.pdf})});
       const k=await r.json(); if(!k.ok) throw new Error(k.error||"fail");
       await api({action:"delete",id});
-      FILES=(await api({action:"list"})).files.map(parse); render();
+      FILES=(await api({action:"list"})).files.map(parse); await dedupe(); render();
       $("msg").textContent=f.who+" 학생을 "+g+c+"반으로 옮겼어요.";
     }catch(_){ $("msg").className="msg err"; $("msg").textContent="옮기지 못했어요. 새로고침 후 다시 해 주세요."; render(); }
     return; }

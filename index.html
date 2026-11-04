@@ -538,7 +538,7 @@ async function submitToTeacher(){
     const j=await r.json();
     if(!j.ok) throw new Error(j.error||"fail");
     lastPdf.submitted=true;
-    statusEl.textContent="✅ 선생님께 제출 완료! ("+label+")"+warn+" 카톡으로도 보내려면 노란 버튼을 누르세요.";
+    statusEl.textContent="✅ 선생님께 제출 완료! ("+label+")"+warn+" 다시 제출하면 마지막에 낸 것으로 바뀌어요. 카톡으로도 보내려면 노란 버튼을 누르세요.";
   }catch(e){
     if(e instanceof TypeError){ // 응답을 못 읽은 경우: 한 번 더 보내기
       try{ await fetch(SUBMIT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
