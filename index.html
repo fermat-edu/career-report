@@ -174,6 +174,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
 (function(){
+const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르"];
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
 const ADIGA="https://www.adiga.kr/";
 const CAREER="https://www.career.go.kr";
@@ -258,6 +259,8 @@ addEventListener("pagehide",saveNow);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveNow();});
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const val=id=>S.v[id]||"";
+const clsName=()=>val("cls").replace(/\s+/g,"").replace(/반$/,"").replace(/[a-z]/g,c=>c.toUpperCase());
+const whoText=()=>[val("grade").trim()&&((val("grade").match(/\d+/)||[val("grade").trim()])[0]+"학년"),clsName()&&clsName()+"반",val("name").trim()].filter(Boolean).join(" ");
 
 /* ---------- 입력 화면 ---------- */
 function photoBox(id,big){
@@ -313,7 +316,8 @@ function renderForm(){
     if(p.part===2){h+='<div class="part p2">1. 진로 컨설팅<small>1단계 ~ 5단계</small></div>';return;}
     h+='<section class="page">'+(p.brand?'<div class="brandline"><b>Fermat</b> education</div>':'')+
       '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
-    if(p.info) h+='<div class="info">'+[["grade","학년"],["cls","반"],["name","이름"]].map(([id,l])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'"></label>').join("")+'</div>';
+    if(p.info) h+='<div class="info">'+[["grade","학년","예: 1",""],["cls","반","눌러서 고르기",' list="clsList" autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
+      '<datalist id="clsList">'+CLASSES.map(c=>'<option value="'+c+'"></option>').join("")+'</datalist>';
     h+=groupItems(p.items,itemEdit)+'</div></section>';
   });
   document.getElementById("form").innerHTML=h;
@@ -396,12 +400,12 @@ function itemPdf(it){
   return "";
 }
 function buildPdfPages(){
-  const who=[val("grade")&&val("grade")+"학년",val("cls")&&val("cls")+"반",val("name")].filter(Boolean).join(" ");
+  const who=whoText();
   return PAGES.filter(p=>!p.part).map(p=>{
     if(p.cover) return '<div class="pp cover"><div class="band"><span>페르마 진로탐구 보고서</span><span style="font-size:40px">⚛</span></div><div class="who">'+esc(who)+'</div></div>';
     let h='<div class="pp">'+(p.brand?'<div class="brandline"><b style="color:#e32626">Fermat</b> education</div>':'')+
       '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
-    if(p.info||p.infoPdf) h+='<div class="infoline"><div>학년 : <span>'+T("grade")+'</span></div><div>반 : <span>'+T("cls")+'</span></div><div>이름 : <span>'+T("name")+'</span></div></div>';
+    if(p.info||p.infoPdf) h+='<div class="infoline"><div>학년 : <span>'+T("grade")+'</span></div><div>반 : <span>'+esc(clsName()&&clsName()+"반")+'</span></div><div>이름 : <span>'+T("name")+'</span></div></div>';
     return h+groupItems(p.items,itemPdf)+'</div></div>';
   });
 }
@@ -503,7 +507,7 @@ async function submitToTeacher(){
   submitBtn.hidden=true;
   statusEl.textContent="선생님께 제출하는 중… 창을 닫지 마세요.";
   const num=x=>{const t=val(x).trim(); return (t.match(/\d+/)||[t])[0];};
-  const label=(num("grade")+"학년"+num("cls")+"반_"+val("name").trim()).replace(/\s+/g,"");
+  const label=(num("grade")+"학년_"+clsName()+"반_"+val("name").trim()).replace(/\s+/g,"");
   const body=JSON.stringify({label,pdf:await blobToB64(lastPdf.blob)});
   const warn=lastPdf.failed?" (결과지 파일 "+lastPdf.failed+"개는 보호된 파일이라 붙이지 못했어요. 캡처 사진으로 올린 뒤 다시 만들어 주세요.)":"";
   try{
@@ -595,7 +599,7 @@ async function stitchPages(srcs){
     let dy=0;
     if(first){ g.fillStyle="#1f5c2b"; g.fillRect(0,head-Math.round(head*0.12),W,Math.round(head*0.06));
       g.fillStyle="#1f2a2c"; g.font="700 "+Math.round(head*0.42)+"px 'Noto Sans KR',sans-serif"; g.textBaseline="middle";
-      const who=[val("grade")&&val("grade")+"학년",val("cls")&&val("cls")+"반",val("name")].filter(Boolean).join(" ");
+      const who=whoText();
       g.fillText("커리어넷 결과지"+(who?"  ·  "+who:""),4,head*0.45); dy=head; }
     let pos=0;
     for(const s of segs){ const h=s.gap||(s.y1-s.y0), a=Math.max(y,pos), z=Math.min(e,pos+h);
@@ -629,7 +633,7 @@ document.getElementById("shotClose").addEventListener("click",()=>{document.getE
 
 /* 예시 작성: 주소 끝에 #demo 를 붙이면 예시 학생 내용으로 채워져요 (선생님 테스트용) */
 if(location.hash==="#demo"){
-  const D={grade:"1",cls:"1",name:"예시학생",
+  const D={grade:"1",cls:"페르마",name:"예시학생",
   s1_like:"1. 수학 문제 풀기\n2. 친구들에게 설명해 주기\n3. 레고·조립하기",
   s1_most:"1. 유튜브로 과학 영상 보기\n2. 수학 숙제\n3. 게임",
   s1_good:"1. 계산 빠르게 하기\n2. 친구 고민 들어주기\n3. 만들기",

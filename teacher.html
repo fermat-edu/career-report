@@ -94,7 +94,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
       <div class="years" id="years" role="group" aria-label="연도"></div>
       <div class="stats" id="stats"></div>
       <div class="toolbar">
-        <input class="search" type="search" id="q" placeholder="이름이나 반으로 찾기 (예: 홍길동, 2학년3반)" aria-label="찾기">
+        <input class="search" type="search" id="q" placeholder="이름이나 반으로 찾기 (예: 홍길동, 페르마)" aria-label="찾기">
         <label class="chk"><input type="checkbox" id="onlyNew" checked> 학생별 최신 제출만</label>
         <button class="btn" id="refreshBtn" type="button">새로고침</button>
         <button class="btn primary" id="zipBtn" type="button">전체 받기</button>
@@ -122,12 +122,16 @@ async function api(params){
   return j;
 }
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르"]; // 반 순서
 function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
   let base=f.name.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,""), form="진로탐구보고서";
   const fi=base.indexOf("__"); if(fi>0){ form=base.slice(0,fi); base=base.slice(fi+2); }
-  const m=base.match(/(\d+)\s*학년\D*?(\d+)\s*반_?(.*)$/);
-  const g=m?+m[1]:99, c=m?+m[2]:99, nm=m?(m[3]||"이름없음").replace(/_/g," "):base.replace(/_/g," ");
-  return {...f,who:nm,key:form+"|"+base,g,c,cls:m?g+"학년 "+c+"반":"기타",year:new Date(f.time).getFullYear(),form};
+  // "1학년_페르마반_홍길동" (예전 형식 "1학년1반_홍길동"도 읽음)
+  const m=base.match(/^(\d*)\s*학년_?(.+?)반_(.*)$/);
+  let g=99, c="기타", nm=base.replace(/_/g," ");
+  if(m){ g=m[1]?+m[1]:99; c=m[2].replace(/_/g,"").replace(/반$/,"").replace(/[a-z]/g,x=>x.toUpperCase()); nm=(m[3]||"이름없음").replace(/_/g," "); }
+  const ci=CLASSES.indexOf(c);
+  return {...f,who:nm,key:form+"|"+base,g,c,ci:ci<0?100:ci,cls:c==="기타"?"기타":c+"반",year:new Date(f.time).getFullYear(),form};
 }
 const fmtTime=t=>{const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");};
 const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+"MB":Math.max(1,Math.round(b/1024))+"KB";
@@ -158,12 +162,13 @@ function visible(){
     .filter(f=>(!$("onlyNew").checked||f.isNew)&&(!q||f.key.replace(/\s/g,"").includes(q)||f.cls.replace(/\s/g,"").includes(q)));
 }
 function byClass(v){
-  const m=new Map(); v.forEach(f=>{ if(!m.has(f.cls)) m.set(f.cls,{g:f.g,c:f.c,files:[]}); m.get(f.cls).files.push(f); });
-  return [...m.entries()].sort((a,b)=>a[1].g-b[1].g||a[1].c-b[1].c).map(([cls,o])=>({cls,files:o.files.sort((x,y)=>x.who.localeCompare(y.who,"ko")||y.time-x.time)}));
+  const m=new Map(); v.forEach(f=>{ if(!m.has(f.cls)) m.set(f.cls,{ci:f.cls==="기타"?999:f.ci,c:f.c,files:[]}); m.get(f.cls).files.push(f); });
+  return [...m.entries()].sort((a,b)=>a[1].ci-b[1].ci||a[1].c.localeCompare(b[1].c,"ko",{numeric:true}))
+    .map(([cls,o])=>({cls,files:o.files.sort((x,y)=>x.g-y.g||x.who.localeCompare(y.who,"ko")||y.time-x.time)}));
 }
 function itemHtml(f){
   return '<div class="item'+(f.isNew?'':' isold')+'" data-id="'+f.id+'"><div><div class="who">'+esc(f.who)+'</div>'+
-    '<div class="meta"><span>'+fmtTime(f.time)+' 제출</span><span>'+fmtSize(f.size)+'</span><span class="pill '+(f.isNew?'new">최신':'old">이전 제출')+'</span></div></div>'+
+    '<div class="meta">'+(f.g<99?'<span>'+f.g+'학년</span>':'')+'<span>'+fmtTime(f.time)+' 제출</span><span>'+fmtSize(f.size)+'</span><span class="pill '+(f.isNew?'new">최신':'old">이전 제출')+'</span></div></div>'+
     '<div class="acts"><button class="btn small" data-act="open">열기</button><button class="btn small" data-act="dl">받기</button><button class="btn small danger" data-act="del">삭제</button></div></div>';
 }
 const openState={};
