@@ -327,8 +327,7 @@ function renderForm(){
     if(p.part===2){h+='<div class="part p2">1. 진로 컨설팅<small>1단계 ~ 5단계</small></div>';return;}
     h+='<section class="page">'+(p.brand?'<div class="brandline"><b>Fermat</b> education</div>':'')+
       '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
-    if(p.info) h+='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","눌러서 고르기",' list="clsList" autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
-      '<datalist id="clsList">'+CLASSES.map(c=>'<option value="'+c+'"></option>').join("")+'</datalist>';
+    if(p.info) h+='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>';
     h+=groupItems(p.items,itemEdit)+'</div></section>';
   });
   document.getElementById("form").innerHTML=h;
