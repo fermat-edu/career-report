@@ -46,7 +46,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .note{font-size:13px;color:var(--muted)} .note a{color:var(--accent);word-break:break-all}
 .pguide{background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6}
 .pguide b{color:var(--ink)} .pguide a{color:var(--accent);word-break:break-all}
-.guide{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+.guide{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
+.guide b{color:var(--accent);font-weight:700}
 .exs{font-size:12.5px;white-space:pre-wrap;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:7px 10px;line-height:1.55}
 .exs b{color:var(--ink);font-weight:700}
 details.ex{font-size:12.5px}
@@ -362,7 +363,7 @@ const GUIDE={
  plan_act:["· 02 학과탐구의 '진로 탐색 활동'을 내가 실제로 할 계획으로 바꿔 써요.\n· 얼마나 자주(매주, 한 달에 한 번) 할지 함께 써요.",""]
 };
 function guideHtml(id){ const g=GUIDE[id]; if(!g) return "";
-  return '<div class="guide">'+esc(g[0])+'</div>'+(g[1]?'<div class="exs"><b>예시</b>\n'+esc(g[1])+'</div>':''); }
+  return '<div class="guide"><b>✏️ 쓰는 방법</b>\n'+esc(g[0])+'</div>'+(g[1]?'<div class="exs"><b>예시</b>\n'+esc(g[1])+'</div>':''); }
 function itemEdit(it){
   switch(it.kind){
     case "row": return '<div class="row"><label class="lab" for="f_'+it.id+'">'+esc(it.label)+'</label><div class="val">'+guideHtml(it.id)+field(it)+(it.photo?photoBox(it.id):"")+'</div></div>';
