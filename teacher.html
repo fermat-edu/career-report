@@ -55,6 +55,8 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .confirm{display:flex;gap:6px;align-items:center;font-size:12.5px}
 .confirm{flex-wrap:wrap}
 .confirm select{font:inherit;font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.dlbox{font-size:13.5px;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.6;overflow-wrap:anywhere}
+.dlbox a{color:var(--accent);font-weight:700}
 .empty{color:var(--muted);text-align:center;padding:30px 10px}
 .progress{height:6px;background:var(--field);border-radius:99px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
@@ -104,6 +106,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
       </div>
       <div class="progress" id="prog" hidden><i></i></div>
       <div class="msg" id="msg"></div>
+      <div class="dlbox" id="dlbox" hidden></div>
       <div class="classnav" id="classnav"></div>
       <div class="groups" id="list"></div>
     </div>
@@ -220,7 +223,11 @@ $("refreshBtn").addEventListener("click",async()=>{ $("refreshBtn").disabled=tru
 async function getBlob(id){ const j=await api({action:"file",id});
   const bin=atob(j.pdf), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   return {blob:new Blob([u8],{type:"application/pdf"}),name:j.name}; }
-function saveBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); }
+function saveBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),600000);
+  // 브라우저가 자동 다운로드를 막는 경우를 위해, 직접 누를 수 있는 링크도 보여줌
+  const box=$("dlbox"); box.hidden=false;
+  box.innerHTML='⬇️ <b>'+esc(name)+'</b> 다운로드를 시작했어요. 다운로드 폴더를 확인하세요.<br>안 받아졌으면 <a href="'+u+'" download="'+esc(name)+'">여기를 눌러 받기</a>';
+}
 
 $("list").addEventListener("click",async e=>{
   const z=e.target.closest("[data-zipcls]"); if(z){ e.preventDefault(); const cls=z.dataset.zipcls; zipFiles(visible().filter(f=>f.cls===cls),FORM+"_"+YEAR+"년_"+cls.replace(/\s/g,""),false,z); return; }
