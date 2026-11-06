@@ -258,14 +258,15 @@ function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.tr
 function idbGet(k){return idb().then(db=>new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
 let phDirty=false;
 let PDFS=[]; // [{name, buf:ArrayBuffer, pages}]
-function saveNow(){
+function saveNow(){ if(DEMO) return;
   clearTimeout(saveT); if(!dirty) return; dirty=false;
   let textOk=true; try{localStorage.setItem(KEY,JSON.stringify({v:S.v}));}catch(e){textOk=false;}
   if(phDirty){ phDirty=false; idbPut("photos",S.ph).then(()=>{statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"사진만 저장됨 · 글 자동 저장이 안 되는 환경이에요";})
      .catch(()=>{statusEl.textContent=textOk?"글은 저장됨 · 사진은 저장이 안 돼요 (창을 닫지 마세요)":"자동 저장이 안 되는 환경이에요. 창을 닫지 말고 끝까지 작성하세요.";}); }
   else statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"자동 저장이 안 되는 환경이에요. 창을 닫지 말고 끝까지 작성하세요.";
 }
-function save(photo){dirty=true; if(photo){phDirty=true; return saveNow();} clearTimeout(saveT); saveT=setTimeout(saveNow,300);}
+let DEMO=false;
+function save(photo){if(DEMO)return; dirty=true; if(photo){phDirty=true; return saveNow();} clearTimeout(saveT); saveT=setTimeout(saveNow,300);}
 // 창을 닫거나 다른 앱으로 넘어갈 때 바로 저장
 addEventListener("pagehide",saveNow);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveNow();});
@@ -303,8 +304,8 @@ function pdfUpBox(){
   '</div>';
 }
 function field(it){
-  if(it.type==="line") return '<input type="text" id="f_'+it.id+'" data-id="'+it.id+'" value="'+esc(val(it.id))+'" placeholder="'+esc(it.hint||"")+'">';
-  return '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint||"")+'">'+esc(val(it.id))+'</textarea>';
+  if(it.type==="line") return '<input type="text" id="f_'+it.id+'" data-id="'+it.id+'" value="'+esc(val(it.id))+'">';
+  return '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'">'+esc(val(it.id))+'</textarea>';
 }
 function gridEdit(it){
   return '<div class="grid2"><table><thead><tr><th>'+esc(it.title)+'</th>'+it.cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+
@@ -372,7 +373,7 @@ function itemEdit(it){
       (it.limit?'<div class="count" id="cnt_'+it.id+'"></div>':'')+'</div>';
     case "note": return '<p class="note">'+it.html+'</p>';
     case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
-    case "free": return '<div class="q">'+guideHtml(it.id)+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint)+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
+    case "free": return '<div class="q">'+guideHtml(it.id)+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
     case "grid": return '<div class="q">'+guideHtml(it.id)+gridEdit(it)+'</div>';
     case "pdfup": return pdfUpBox();
   }
@@ -392,7 +393,7 @@ function renderForm(){
     if(p.part===2){h+='<div class="part p2">1. 진로 컨설팅<small>1단계 ~ 5단계</small></div>';return;}
     h+='<section class="page">'+(p.brand?'<div class="brandline"><b>Fermat</b> education</div>':'')+
       '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
-    if(p.info) h+='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>';
+    if(p.info) h+='<div class="info">'+[["grade","학년","",""],["cls","반","",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>';
     if(PGUIDE[p.id]) h+='<div class="pguide">'+PGUIDE[p.id]+'</div>';
     h+=groupItems(p.items,itemEdit)+'</div></section>';
   });
@@ -453,6 +454,7 @@ function updAddBtn(){const b=document.getElementById("addPdfBtn"); if(b) b.textC
 
 /* 중간 저장 */
 document.getElementById("midSaveBtn").addEventListener("click",async()=>{
+  if(DEMO){ statusEl.textContent="예시 화면이라 저장하지 않아요. 학생용 링크를 다시 열어 주세요."; return; }
   const b=document.getElementById("midSaveBtn"); b.disabled=true;
   clearTimeout(saveT); dirty=false; phDirty=false;
   let ok=true;
@@ -720,6 +722,7 @@ function showShots(){
 document.getElementById("shotClose").addEventListener("click",()=>{document.getElementById("shots").hidden=true;});
 
 /* 예시 작성: 주소 끝에 #demo 를 붙이면 예시 학생 내용으로 채워져요 (선생님 테스트용) */
+if(S.v.name==="예시학생"){ S={v:{},ph:{}}; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); idbPut("pdfs",[]).catch(()=>{}); }
 if(location.hash==="#demo"){
   const D={grade:"7",cls:"페르마",name:"예시학생",
   s1_like:"1. 수학 문제 풀기\n2. 친구들에게 설명해 주기\n3. 레고·조립하기",
@@ -756,7 +759,7 @@ if(location.hash==="#demo"){
   school_result:"(예시) 학생부교과전형 교과 100%, 2026학년도 경쟁률·합격 성적을 적는 칸",
   plan_math:"교과서 개념을 정리하고 매주 심화 문제를 푼다.",plan_sci:"실험 보고서를 꼼꼼히 쓴다.",
   plan_eng:"영어 단어를 하루 20개씩 외운다.",plan_soc:"뉴스에 나온 통계 자료를 찾아본다.",plan_act:"코딩 방과후 수업에 참여한다."};
-  delete D.s3_res_1_0_; S.v=D; dirty=true; saveNow(); history.replaceState(null,"",location.pathname);
+  delete D.s3_res_1_0_; S.v=D; DEMO=true; history.replaceState(null,"",location.pathname);
   setTimeout(()=>{statusEl.textContent="예시 내용으로 채웠어요. 노란 버튼을 누르면 제출 테스트가 돼요.";},0);
 }
 renderForm();
