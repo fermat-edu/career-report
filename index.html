@@ -44,6 +44,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .pbody{padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
 .subhead{font-weight:700;font-size:15px;border-top:1.5px solid var(--ink);border-bottom:1px solid var(--line);padding:8px 2px;margin-top:4px}
 .note{font-size:13px;color:var(--muted)} .note a{color:var(--accent);word-break:break-all}
+.pguide{background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.pguide b{color:var(--ink)} .pguide a{color:var(--accent);word-break:break-all}
+.guide{font-size:12.5px;color:var(--muted);line-height:1.5}
+details.ex{font-size:12.5px}
+details.ex summary{cursor:pointer;color:var(--accent);font-weight:700;width:fit-content}
+details.ex summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.ex div{margin-top:6px;white-space:pre-wrap;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;line-height:1.55}
 
 .info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .info label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:4px}
@@ -299,15 +306,49 @@ function gridEdit(it){
   return '<div class="grid2"><table><thead><tr><th>'+esc(it.title)+'</th>'+it.cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+
    [1,2].map(r=>'<tr><td class="rh">'+r+'순위</td>'+it.cols.map((c,ci)=>{const id=it.id+"_"+r+"_"+ci;return '<td><input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" aria-label="'+esc(it.title+" "+r+"순위 "+c)+'"></td>';}).join("")+'</tr>').join("")+'</tbody></table></div>';
 }
+/* 작성 안내: [무엇을 쓰나요, 예시] — 페르마 직업탐구 보고서 예시를 바탕으로 */
+const PGUIDE={
+ p1:'<b>어디서 찾나요?</b> <a href="https://www.career.go.kr" target="_blank" rel="noopener">커리어넷</a> → 직업정보에서 희망 직업을 검색해 아래 칸을 정리해요. 찾은 내용을 내 말로 다듬어 쓰면 더 좋아요.',
+ p2:'<b>어디서 찾나요?</b> <a href="https://www.career.go.kr" target="_blank" rel="noopener">커리어넷</a> → 학과정보에서 01에 쓴 직업과 관련된 학과 1개를 골라 정리해요.',
+ p3:'<b>어디서 찾나요?</b> <a href="https://www.adiga.kr/" target="_blank" rel="noopener">대학어디가</a>에서 대학 이름을 검색해 희망 학과의 모집 정보와 전형결과를 찾아요. 표는 <b>캡처해서 사진으로</b> 넣으면 돼요.',
+ p4:'<b>어떻게 쓰나요?</b> 과목마다 <b>언제, 무엇을, 어떻게</b> 공부할지 구체적으로 써요. "열심히 하기"보다 "3~8월 수업 필기로 복습 후 오답노트 정리"처럼 써야 해요.'
+};
+const GUIDE={
+ job:["희망 직업 이름을 1개 써요.","시스템소프트웨어개발자"],
+ core:["직업정보에 나온 '핵심능력'을 옮겨 써요.","창의력, 수리논리력"],
+ similar:["비슷한 일을 하는 직업을 써요.","시스템프로그래머"],
+ major_cert:["관련학과와 관련자격(자격증)을 나눠서 써요.","관련학과: 시스템공학과, 컴퓨터공학과\n관련자격: 정보처리기사, 전자계산기기사"],
+ work:["이 직업이 실제로 하는 일을 2~4문장으로 써요.","컴퓨터를 작동시키고 조정·통제·관리하는 운영체제 소프트웨어를 연구, 개발, 설계한다.\n개발한 소프트웨어를 컴퓨터에 설치해 시험 운영하고, 기능과 성능을 평가·분석한다."],
+ apt:["필요한 능력, 성격, 흥미 유형을 써요.","논리적·분석적 사고능력과 창의력이 필요하다.\n다른 개발자와 함께 일하므로 의사소통능력이 요구된다.\n탐구형·진취형 흥미를 가진 사람에게 적합하다."],
+ prep:["이 직업을 갖기 위해 필요한 학과, 교육, 자격증을 써요.","- 대학교의 컴퓨터공학 관련 학과를 졸업하는 것이 유리하다.\n- 학과에서 C언어, JAVA 같은 프로그래밍 언어와 데이터베이스를 공부한다.\n- 관련 자격증: 정보처리기사, 전자계산기기사"],
+ employ:["어디에 취업하는지와 앞으로의 일자리 전망을 써요.","공채나 특채로 시스템소프트웨어 개발업체, 통신장비 업체 등에 취업한다.\n앞으로 10년간 임베디드·펌웨어 분야를 중심으로 고용이 다소 증가할 전망이다."],
+ dept:["01의 직업과 관련된 학과를 1개 써요.","컴퓨터공학과"],
+ dept_over:["이 학과에서 무엇을 배우는지 한두 문장으로 써요.","컴퓨터 시스템, 프로그래밍, 알고리즘 설계 등 이론과 실습을 통해 IT 인재를 키우는 학과이다."],
+ dept_feat:["이 학과의 특징이나 앞으로의 전망을 써요.","빅데이터, 인공지능, 사물인터넷, 자율주행차 등이 모두 컴퓨터공학과 관련 있어 앞으로도 분야가 계속 커질 전망이다."],
+ dept_apt:["어떤 학생에게 잘 맞는 학과인지 써요.","IT 기술과 새로운 기기에 관심이 많고, 프로그래밍에 필요한 논리적 사고능력이 있는 학생에게 유리하다."],
+ hs_subj:["고등학교에서 들으면 좋은 과목을 공통과목, 일반선택, 진로선택으로 나눠 써요.","공통과목: 수학, 과학, 기술·가정\n일반선택: 수학Ⅰ·Ⅱ, 미적분, 확률과 통계, 물리학Ⅰ, 정보\n진로선택: 기하, 물리학Ⅱ, 공학 일반"],
+ explore:["지금부터 해볼 수 있는 활동을 '활동 이름 - 내용'으로 써요.","컴퓨터 부품 확인 - 본체를 열어 부품을 직접 보고 구조를 이해한다.\n뉴스 구독 - IT 관련 기사를 읽고 최신 기술을 파악한다.\n코딩 연습 - 코딩 사이트로 프로그래밍 기초를 익힌다."],
+ video:["학과나 직업을 소개하는 영상의 제목과 주소를 써요.","[EBS 입시 핫라인] 컴퓨터공학과\nhttps://www.youtube.com/watch?v=…"],
+ school:["가고 싶은 대학과 학과를 써요.","연세대학교 컴퓨터과학과"],
+ school_info:["어디가에서 희망 학과의 모집 정보 표를 캡처해서 넣어요. 모집시기(수시·정시), 전형유형, 전형명, 모집인원, 경쟁률, 합격 성적(70% cut)이 보이게 찍어요.","수시 · 학생부교과(추천형) · 모집 13명 · 경쟁률 11.31 : 1 · 70% cut 1.5등급"],
+ school_result:["학생부교과전형의 ① 전형요소와 배점(1단계·2단계) ② 학년별 반영 비율 ③ 반영 교과목과 산출 방법을 캡처해서 넣어요.","1단계: 교과 100% (5배수 선발)\n2단계: 1단계 성적 40% + 면접 60%\n학년·학기별 반영 비율: 없음(전 학년 같은 비율)"],
+ plan_math:["언제, 무엇을, 어떻게 공부할지 써요.","3~8월: 학교 수업 필기로 복습한 뒤 문제집으로 한 번 더 복습\n틀린 문제는 오답노트에 정리하고 다시 풀기\n정의, 정리, 증명을 구분해서 외우기\n기본 문제 시간을 줄이고 심화 문제 시간을 늘리기"],
+ plan_sci:["단원별로 언제, 어떻게 공부할지 써요.","1~2단원(3~8월): 수업 복습과 개념 필기 다시 보기\n선생님이 강조한 부분 위주로 매일 5분 이상 복습"],
+ plan_eng:["언제, 무엇을, 어떻게 공부할지 써요.","매일 영어 단어 20개 외우기\n교과서 본문을 해석하며 복습하고, 시험 2주 전부터 문법 정리"],
+ plan_soc:["언제, 무엇을, 어떻게 공부할지 써요.","단원이 끝날 때마다 핵심 개념을 마인드맵으로 정리\n수업 시간에 질문한 내용 다시 보기"],
+ plan_act:["02의 '진로 탐색 활동'을 내가 실제로 할 계획으로 바꿔 써요.","IT 관련 웹진이나 뉴스를 매주 1개 이상 읽고 관심 내용 정리\n코딩 사이트로 프로그래밍 기초 연습\n인공지능, 빅데이터 관련 영상 시청"]
+};
+function guideHtml(id){ const g=GUIDE[id]; if(!g) return "";
+  return '<div class="guide">'+esc(g[0])+'</div><details class="ex"><summary>예시 보기</summary><div>'+esc(g[1])+'</div></details>'; }
 function itemEdit(it){
   switch(it.kind){
-    case "row": return '<div class="row"><label class="lab" for="f_'+it.id+'">'+esc(it.label)+'</label><div class="val">'+field(it)+(it.photo?photoBox(it.id):"")+'</div></div>';
+    case "row": return '<div class="row"><label class="lab" for="f_'+it.id+'">'+esc(it.label)+'</label><div class="val">'+guideHtml(it.id)+field(it)+(it.photo?photoBox(it.id):"")+'</div></div>';
     case "q": return '<div class="q"><label class="qt" for="f_'+it.id+'">'+esc(it.label)+(it.sub?' <span class="qs">('+esc(it.sub)+')</span>':'')+'</label>'+
       '<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'"'+(it.limit?' data-limit="'+it.limit+'"':'')+'>'+esc(val(it.id))+'</textarea>'+
       (it.limit?'<div class="count" id="cnt_'+it.id+'"></div>':'')+'</div>';
     case "note": return '<p class="note">'+it.html+'</p>';
     case "sub": return '<div class="subhead"'+(it.center?' style="text-align:center"':'')+'>'+esc(it.text)+'</div>';
-    case "free": return '<div class="q">'+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint)+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
+    case "free": return '<div class="q">'+guideHtml(it.id)+(it.photoOnly?'<span class="qt">'+esc(it.hint)+'</span>':'<textarea id="f_'+it.id+'" data-id="'+it.id+'" rows="'+it.rows+'" placeholder="'+esc(it.hint)+'" aria-label="'+esc(it.hint)+'">'+esc(val(it.id))+'</textarea>')+photoBox(it.id,true)+'</div>';
     case "grid": return gridEdit(it);
     case "pdfup": return pdfUpBox();
   }
@@ -328,6 +369,7 @@ function renderForm(){
     h+='<section class="page">'+(p.brand?'<div class="brandline"><b>Fermat</b> education</div>':'')+
       '<div class="ribbon '+p.color+'"><span class="num">'+p.num+'</span>'+p.title+(p.tag?'<span class="tag">'+p.tag+'</span>':'')+'</div><div class="pbody">';
     if(p.info) h+='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>';
+    if(PGUIDE[p.id]) h+='<div class="pguide">'+PGUIDE[p.id]+'</div>';
     h+=groupItems(p.items,itemEdit)+'</div></section>';
   });
   document.getElementById("form").innerHTML=h;
