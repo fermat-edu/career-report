@@ -111,6 +111,13 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 .btn:disabled{opacity:.6;cursor:wait}
 .confirm{display:flex;gap:8px;align-items:center;font-size:13px}
 
+.modal{position:fixed;inset:0;z-index:50;background:rgba(15,25,27,.55);display:flex;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mbox{background:var(--paper);color:var(--ink);border-radius:16px;padding:24px 20px 18px;width:100%;max-width:360px;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.mbox .micon{font-size:44px;line-height:1}
+.mbox h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0}
+.mbox p{margin:0;color:var(--muted);font-size:14px;white-space:pre-line}
+.mbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.mbtns .btn{flex:1 1 120px}
 .shots{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .shots-head{max-width:820px;margin:0 auto 14px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;font-size:14px}
 .shots-head span{color:var(--muted)}
@@ -172,6 +179,18 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 </div>
 
 <div id="pdfStage" aria-hidden="true"></div>
+
+<div id="doneModal" class="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="doneTitle">
+  <div class="mbox">
+    <div class="micon" id="doneIcon">✅</div>
+    <h2 id="doneTitle">제출 완료!</h2>
+    <p id="doneText"></p>
+    <div class="mbtns">
+      <button class="btn" id="doneOk" type="button">확인</button>
+      <button class="btn primary" id="doneShare" type="button">카톡으로도 보내기</button>
+    </div>
+  </div>
+</div>
 
 <div id="shots" class="shots" hidden role="dialog" aria-label="완성된 보고서">
   <div class="shots-head">
@@ -589,6 +608,18 @@ async function deliver(blob,name){
   // 3) 공유가 안 되는 브라우저(대부분의 컴퓨터): 파일로 저장
   download(blob,name);
 }
+/* 제출 결과 알림창 */
+function showDone(ok,label,warn){
+  const m=document.getElementById("doneModal");
+  document.getElementById("doneIcon").textContent=ok?"✅":"⚠️";
+  document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
+  document.getElementById("doneText").textContent=ok?label.replace(/^\d+학년_/,"").replace(/_/g," ")+"\n선생님께 보고서가 제출됐어요."+(warn?"\n"+warn.trim():"")+"\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
+  document.getElementById("doneShare").hidden=!ok;
+  m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
+}
+document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true;});
+document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; if(lastPdf) deliver(lastPdf.blob,lastPdf.name);});
+
 /* 선생님께 제출 */
 const submitBtn=document.getElementById("submitBtn");
 function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
@@ -604,15 +635,15 @@ async function submitToTeacher(){
     const r=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
     const j=await r.json();
     if(!j.ok) throw new Error(j.error||"fail");
-    lastPdf.submitted=true;
+    lastPdf.submitted=true; showDone(true,label,warn);
     statusEl.textContent="✅ 선생님께 제출 완료! ("+label+")"+warn+" 다시 제출하면 마지막에 낸 것으로 바뀌어요. 카톡으로도 보내려면 노란 버튼을 누르세요.";
   }catch(e){
     if(e instanceof TypeError){ // 응답을 못 읽은 경우: 한 번 더 보내기
       try{ await fetch(SUBMIT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
-        lastPdf.submitted=true; statusEl.textContent="✅ 선생님께 제출했어요. ("+label+")"+warn; return; }catch(_){}
+        lastPdf.submitted=true; statusEl.textContent="✅ 선생님께 제출했어요. ("+label+")"+warn; showDone(true,label,warn); return; }catch(_){}
     }
     submitBtn.hidden=false;
-    statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요.";
+    statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요."; showDone(false);
   }
 }
 submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await submitToTeacher();}finally{submitBtn.disabled=false;}});
