@@ -217,6 +217,12 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 .pp .evtbl td.s{font-weight:700;white-space:nowrap}
 .pp .evtbl td.n{text-align:center;white-space:nowrap}
 .pp .src{font-size:11.5px;color:#5f6d70}
+.doclink{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:14.5px;color:#fff;background:var(--forest);border-radius:10px;padding:12px 14px;text-decoration:none}
+.doclink small{font-weight:400;opacity:.85}
+.doclink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.club .cd .act ol,.pp .act ol,.cbox .act ol{margin:4px 0 0;padding-left:22px}
+.club .cd .act b,.pp .act b{color:var(--ink);font-size:13px}
+.pp .cbox p{margin:0;font-size:13.5px} .pp .cbox .act{font-size:12.5px;color:#333}
 </style>
 
 </head>
@@ -228,14 +234,14 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
       <a href="./school.html" aria-current="page">고등학교 조사 보고서</a>
     </nav>
     <h1>페르마 고등학교 조사 보고서</h1>
-    <p>가고 싶은 고등학교를 고르면 그 학교의 <b>꼭 알아야 할 정보</b>가 자동으로 나와요. 정보를 읽고, 동아리 3개를 고르고, 빈칸을 채운 뒤 아래 노란 버튼을 누르세요. PDF가 만들어지고 선생님께 자동으로 제출돼요.</p>
+    <p>가고 싶은 고등학교를 고르면 그 학교의 <b>1학년 과목별 평가 방법·수행평가</b>, 학교 특색, 동아리 정보가 나와요. 동아리 3개를 고르고 아래 노란 버튼을 누르면, <b>학교 평가계획 원본이 뒤에 붙은 PDF</b>가 만들어지고 선생님께 자동으로 제출돼요. 고등학교 다니는 동안 시험·수행평가 전에 꺼내 보는 참고 자료예요.</p>
     <ul class="steps">
       <li><b>①</b> 학년·반·이름 쓰고 희망 학교 고르기</li>
-      <li><b>②</b> 평가 방법·학교 특색 읽고 답하기</li>
+      <li><b>②</b> 평가 방법·학교 특색 확인하기</li>
       <li><b>③</b> 동아리 3개 고르기</li>
-      <li><b>④</b> PDF 만들고 제출</li>
+      <li><b>④</b> PDF 만들고 제출 (원본 평가계획 포함)</li>
     </ul>
-    <p class="note">쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
+    <p class="note">쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 할 수 있어요. (다른 기기로는 이어지지 않아요)</p>
   </header>
   <div id="form"></div>
 </div>
@@ -275,7 +281,8 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="school-data.js?v=1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="school-data.js?v=2"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -366,63 +373,45 @@ function evCards(s){
 function missingSubj(s){ const have=s.ev.map(e=>e.s); return CORE.filter(c=>!have.includes(c)); }
 
 /* ---------- 입력 화면 ---------- */
+function docLink(s){ return '<a class="doclink" href="'+esc(s.doc)+'" target="_blank" rel="noopener">📄 '+esc(val("school"))+' 1학년 1학기 평가계획 원본 열기 <small>('+s.pages+'쪽 · PDF)</small></a>'; }
 function renderForm(){
   const s=cur(); let h="";
-  // 01 기본 정보
   let p1='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
    '<label class="schoolpick" for="f_school">희망 고등학교<select id="f_school" data-id="school"><option value="">— 학교를 골라 주세요 —</option>'+
    NAMES.map(n=>'<option value="'+esc(n)+'"'+(n===val("school")?' selected':'')+'>'+esc(n)+'</option>').join("")+'</select></label>';
-  if(s){
-    p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+
-      '<div class="tbl"><div class="row"><label class="lab" for="f_why">이 학교를 고른 이유</label><div class="val">'+guideHtml("why")+ta("why",4)+'</div></div>'+
-      '<div class="row"><label class="lab" for="f_commute">통학 방법·시간</label><div class="val">'+guideHtml("commute")+'<input type="text" id="f_commute" data-id="commute" value="'+esc(val("commute"))+'" placeholder="예: 버스 ○○번, 약 20분"></div></div></div>';
-  } else p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
+  if(s) p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+'<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>';
+  else p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
   h+=section("01.","희망 학교","c-coral",p1);
   if(s){
-    // 02 평가
     const miss=missingSubj(s);
-    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 수행평가는 수업 시간에 하는 글쓰기·발표·실험·보고서예요. (2026학년도 1학년 1학기 평가계획 기준 · 내년에 조금 바뀔 수 있어요)</div>'+evCards(s);
-    if(miss.length){ p2+='<div class="subhead">직접 찾아 적기: '+esc(miss.join(", "))+'</div>'+guideHtml("ev_missing")+
-      miss.map(m=>'<div class="q"><label class="qt" for="f_evm_'+m+'">'+esc(m)+'</label>'+ta("evm_"+m,2,"지필 ○% (중간 ○ · 기말 ○), 수행평가: ○○ ○%")+'</div>').join(""); }
-    p2+='<div class="q"><label class="qt" for="f_ev_focus">수행평가 비중이 큰 과목과 준비할 점</label>'+guideHtml("ev_focus")+ta("ev_focus",4)+'</div>';
-    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,"자동으로 나와요");
-    // 03 특색
-    let p3='<ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>'+
-      '<div class="q"><label class="qt" for="f_feat_want">참여하고 싶은 특색 프로그램과 이유</label>'+guideHtml("feat_want")+ta("feat_want",4)+'</div>'+
-      '<div class="q"><span class="qt">더 알게 된 내용 (선택)</span>'+guideHtml("feat_more")+ta("feat_more",3,"학교 홈페이지·학교알리미에서 찾은 내용")+photoBox("feat_more")+'</div>';
-    h+=section("03.","학교 특색 프로그램","c-yellow",p3);
-    // 04 동아리
+    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s)+evCards(s)+
+      (miss.length?'<p class="note">※ 이 학교에서 받은 자료에는 '+esc(miss.join(", "))+' 평가계획이 없어요. 학교알리미(schoolinfo.go.kr)나 학교 홈페이지에서 확인하세요.</p>':'');
+    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,"2026학년도 1학기 기준");
     const picked=arr("clubs");
-    let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 설명이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요. 아래에 고른 동아리와 이유를 쓰는 칸이 생겨요.'+
+    let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 학교 운영계획서에 있는 활동 목적과 연간 활동이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요.'+
       (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 동아리 설명 자료가 없어 이름을 보고 간단히 적었어요. 정확한 활동은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
       '<div class="clubtools"><input type="text" id="clubq" placeholder="동아리 찾기 (예: 과학, 영어, 코딩)" aria-label="동아리 찾기" autocomplete="off"><span class="pickcount" id="pickcount">'+picked.length+' / '+MAXC+' 선택</span></div>'+
       '<div class="clist" id="clist">'+s.clubs.map((c,i)=>clubItem(c,i,picked.includes(c.n))).join("")+'</div>'+
       '<div class="subhead">내가 고른 동아리</div><div class="chosen" id="chosen">'+chosenHtml(s)+'</div>';
-    h+=section("04.","동아리 고르기","c-teal",p4,"3개 선택");
-    // 05 방과후·목표
-    const ab=arr("ab");
-    let p5='<div class="pguide"><b>방과후학교</b>는 학기마다 수요 조사를 해서 강좌를 열어요. 듣고 싶은 과목을 골라 두면 신청할 때 도움이 돼요.</div>'+
-      '<div class="q"><span class="qt">듣고 싶은 방과후 과목 (여러 개 가능)</span><div class="checks">'+AFTER.map(a=>'<label><input type="checkbox" data-ab="'+esc(a)+'"'+(ab.includes(a)?' checked':'')+'>'+esc(a)+'</label>').join("")+'</div></div>'+
-      '<div class="q"><label class="qt" for="f_ab_why">고른 이유</label>'+guideHtml("ab_why")+ta("ab_why",3)+'</div>'+
-      '<div class="q"><label class="qt" for="f_goal">고등학교 1학년 1학기 나의 목표 (300자)</label>'+guideHtml("goal")+ta("goal",6,"",300)+'</div>';
-    h+=section("05.","방과후 · 고1 목표","c-dark",p5);
+    h+=section("03.","동아리 고르기","c-teal",p4,"3개 선택");
   }
   document.getElementById("form").innerHTML=h;
-  document.querySelectorAll("[data-limit]").forEach(updCount);
+}
+function clubDetail(c){
+  return '<p>'+esc(c.d||"설명 자료 없음")+'</p>'+((c.a&&c.a.length)?'<div class="act"><b>연간 활동 계획</b><ol>'+c.a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ol></div>':'');
 }
 function clubItem(c,i,on){
   const sub=c.f?'<small>'+esc(c.f)+'</small>':'';
   return '<details class="club" data-i="'+i+'" data-on="'+(on?1:0)+'" data-name="'+esc((c.n+" "+(c.d||"")+" "+(c.f||"")+" "+(c.a||[]).join(" ")).toLowerCase())+'"><summary><span class="cn">'+esc(c.n)+sub+'</span><span class="arrow" aria-hidden="true">▼</span>'+
     '<button type="button" class="pickbtn" data-pick="'+i+'" aria-pressed="'+on+'">'+(on?'선택됨 ✓':'선택')+'</button></summary>'+
-    '<div class="cd"><p>'+esc(c.d||"설명 자료 없음")+'</p>'+((c.a&&c.a.length)?'<p class="act">주요 활동: '+esc(c.a.join(" · "))+'</p>':'')+'</div></details>';
+    '<div class="cd">'+clubDetail(c)+'</div></details>';
 }
 function chosenHtml(s){
   const picked=arr("clubs");
   if(!picked.length) return '<div class="empty">아직 고른 동아리가 없어요. 위 목록에서 3개를 골라 주세요.</div>';
-  return picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""}; const id="club_why_"+k;
-    return '<div class="cbox"><div class="ch"><b>'+(k+1)+'. '+esc(c.n)+'</b><button type="button" class="rm" data-unpick="'+esc(n)+'">빼기</button></div><div class="cdsc">'+esc(c.d||"")+'</div>'+
-      '<label class="qt" for="f_'+id+'" style="font-size:13.5px">고른 이유 · 해 보고 싶은 활동</label>'+(k===0?guideHtml("club_why"):'')+ta(id,3)+'</div>';}).join("")+
-    (picked.length<MAXC?'<p class="note">'+(MAXC-picked.length)+'개 더 골라 주세요.</p>':'');
+  return picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
+    return '<div class="cbox"><div class="ch"><b>'+(k+1)+'. '+esc(c.n)+'</b><button type="button" class="rm" data-unpick="'+esc(n)+'">빼기</button></div><div class="cdsc">'+esc(c.d||"")+'</div></div>';}).join("")+
+    (picked.length<MAXC?'<p class="note">'+(MAXC-picked.length)+'개 더 골라 주세요.</p>':'<p class="note">✅ 3개를 모두 골랐어요. 아래 노란 버튼을 눌러 제출하세요.</p>');
 }
 function updCount(t){const c=document.getElementById("cnt_"+t.dataset.id); if(!c)return; const n=t.value.replace(/\s/g,"").length, L=+t.dataset.limit; c.textContent="공백 제외 "+n+" / "+L+"자"; c.classList.toggle("over",n>L);}
 
@@ -438,14 +427,12 @@ form.addEventListener("change",e=>{const t=e.target;
 function filterClubs(q){ q=q.trim().toLowerCase(); document.querySelectorAll("#clist .club").forEach(d=>{d.hidden=!!q&&!d.dataset.name.includes(q);}); }
 function togglePick(name){
   const a=arr("clubs"), i=a.indexOf(name);
-  if(i>=0){ // 빼면 이유 칸도 같이 당겨오기
-    const why=[0,1,2].map(k=>val("club_why_"+k)); why.splice(i,1); why.push(""); why.forEach((w,k)=>{S.v["club_why_"+k]=w;}); a.splice(i,1);
-  } else { if(a.length>=MAXC){ statusEl.textContent="동아리는 3개까지 고를 수 있어요. 먼저 하나를 빼 주세요."; return; } a.push(name); }
+  if(i>=0){ a.splice(i,1); } else { if(a.length>=MAXC){ statusEl.textContent="동아리는 3개까지 고를 수 있어요. 먼저 하나를 빼 주세요."; return; } a.push(name); }
   setArr("clubs",a); save(); resetSend();
   const s=cur(); document.querySelectorAll("#clist .club").forEach(d=>{const c=s.clubs[+d.dataset.i]; const on=a.includes(c.n); d.dataset.on=on?1:0; const b=d.querySelector(".pickbtn"); b.textContent=on?"선택됨 ✓":"선택"; b.setAttribute("aria-pressed",on);});
   document.getElementById("chosen").innerHTML=chosenHtml(s);
   document.getElementById("pickcount").textContent=a.length+" / "+MAXC+" 선택";
-  statusEl.textContent=a.length===MAXC?"동아리 3개를 모두 골랐어요. 고른 이유를 써 주세요.":"동아리 "+a.length+"개 골랐어요 · "+(MAXC-a.length)+"개 더 고르세요";
+  statusEl.textContent=a.length===MAXC?"동아리 3개를 모두 골랐어요. 노란 버튼을 눌러 제출하세요.":"동아리 "+a.length+"개 골랐어요 · "+(MAXC-a.length)+"개 더 고르세요";
 }
 form.addEventListener("click",e=>{
   const p=e.target.closest("[data-pick]"); if(p){ e.preventDefault(); const s=cur(); togglePick(s.clubs[+p.dataset.pick].n); return; }
@@ -500,32 +487,24 @@ function evTable(s){
 }
 function buildPdfPages(){
   const s=cur(), who=whoText(), out=[];
-  out.push('<div class="pp cover"><div class="band" style="background:#3e9ca7"><span>고등학교 조사 보고서</span><span style="font-size:40px">🏫</span></div><div class="who" style="font-size:30px;font-family:var(--display);font-weight:400">'+esc(val("school"))+'</div><div class="who">'+esc(who)+'</div></div>');
-  out.push(ppPage("01.","희망 학교","c-coral",
+  out.push('<div class="pp cover"><div class="band" style="background:#3e9ca7"><span>고등학교 조사 보고서</span><span style="font-size:40px">🏫</span></div><div class="who" style="font-size:30px;font-family:var(--display);font-weight:400">'+esc(val("school"))+'</div><div class="who">'+esc(who)+'</div>'+
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">01 학교 정보 · 특색 &nbsp;|&nbsp; 02 과목별 평가 한눈에 보기 &nbsp;|&nbsp; 03 내가 고른 동아리<br>부록: 1학년 1학기 교수학습 및 평가 운영 계획 원본 ('+s.pages+'쪽)</div></div>');
+  out.push(ppPage("01.","학교 정보 · 특색","c-coral",
     '<div class="subhead">'+esc(val("school"))+'</div>'+factsHtml(s)+
-    '<div class="tbl"><div class="row"><div class="lab">이 학교를 고른 이유</div><div class="val"><div class="txt" style="min-height:80px">'+T("why")+'</div></div></div>'+
-    '<div class="row"><div class="lab">통학 방법·시간</div><div class="val"><div class="txt">'+T("commute")+'</div></div></div></div>'+
-    '<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>'+
-    '<div class="q"><div class="qt">참여하고 싶은 특색 프로그램과 이유</div>'+box("feat_want",70)+'</div>'+
-    ((val("feat_more").trim()||(S.ph.feat_more||[]).length)?'<div class="q"><div class="qt">더 알게 된 내용</div>'+(val("feat_more").trim()?box("feat_more"):'')+imgs("feat_more")+'</div>':''),true));
+    '<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>',true));
   const miss=missingSubj(s);
-  out.push(ppPage("02.","1학년 과목별 평가 방법","c-green",
-    '<p class="src">2026학년도 1학년 1학기 교수학습 및 평가 운영 계획 기준 · 지필(중간·기말)+수행평가=100%</p>'+evTable(s)+
-    (miss.length?'<div class="subhead">직접 찾아 적은 과목</div>'+miss.map(m=>'<div class="q"><div class="qt">'+esc(m)+'</div>'+box("evm_"+m,36)+'</div>').join(""):'')+
-    '<div class="q"><div class="qt">수행평가 비중이 큰 과목과 준비할 점</div>'+box("ev_focus",80)+'</div>'));
+  out.push(ppPage("02.","1학년 과목별 평가 한눈에 보기","c-green",
+    '<p class="src">2026학년도 1학년 1학기 교수학습 및 평가 운영 계획 기준 · 지필(중간·기말)+수행평가=100% · 수행평가 과제·채점 기준·시기는 뒤에 붙은 원본을 보세요.</p>'+evTable(s)+
+    (miss.length?'<p class="src">※ 받은 자료에 없는 과목: '+esc(miss.join(", "))+' (학교알리미·학교 홈페이지에서 확인)</p>':'')));
   const picked=arr("clubs");
   out.push(ppPage("03.","내가 고른 동아리","c-teal",
-    (picked.length?picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
-      return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(c.n)+(c.f?' <span class="src">('+esc(c.f)+')</span>':'')+'</b><div class="cdsc">'+esc(c.d||"")+((c.a&&c.a.length)?'<br>주요 활동: '+esc(c.a.join(" · ")):'')+'</div>'+
-        '<div class="qt" style="font-size:13.5px">고른 이유 · 해 보고 싶은 활동</div>'+box("club_why_"+k,60)+'</div>';}).join(""):'<p class="note">고른 동아리가 없어요.</p>')));
-  const ab=arr("ab");
-  out.push(ppPage("04.","방과후 · 고1 목표","c-dark",
-    '<div class="q"><div class="qt">듣고 싶은 방과후 과목</div><div class="chips">'+(ab.length?ab.map(a=>'<span class="chip t">'+esc(a)+'</span>').join(""):'<span class="note">고르지 않음</span>')+'</div></div>'+
-    '<div class="q"><div class="qt">고른 이유</div>'+box("ab_why",60)+'</div>'+
-    '<div class="q"><div class="qt">고등학교 1학년 1학기 나의 목표</div>'+box("goal",160)+'</div>'));
+    picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
+      return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(c.n)+(c.f?' <span class="src">('+esc(c.f)+')</span>':'')+'</b>'+clubDetail(c)+'</div>';}).join("")+
+    (s.clubs.some(c=>c.m)?'<p class="src">※ 이 학교는 동아리 설명 자료가 없어 이름을 보고 간단히 적었어요.</p>':'<p class="src">출처: '+esc(val("school"))+' 2026학년도 동아리 운영계획서</p>')));
+  out.push('<div class="pp cover"><div class="band" style="background:#1f5c2b;font-size:40px"><span>부록 · 평가계획 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 1학년 1학기 교수학습 및 평가 운영 계획</div>'+
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">다음 쪽부터 학교에서 공개한 원본이 그대로 이어져요 ('+s.pages+'쪽).<br>시험·수행평가 전에 해당 과목의 <b>평가 방법과 반영 비율</b>, <b>수행평가 영역별 세부 기준</b>을 꼭 확인하세요.</div></div>');
   return out;
 }
-
 /* ---------- PDF 만들기 & 보내기 ---------- */
 let dlPromise=null;
 try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.claude.use("downloads").catch(()=>null); }catch(e){}
@@ -562,7 +541,17 @@ pdfBtn.addEventListener("click",async()=>{
     }
     stage.innerHTML="";
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    lastPdf={blob:pdf.output("blob"),name:"고등학교조사보고서_"+nm+".pdf",shots};
+    let blob=pdf.output("blob"), docOk=false;
+    try{
+      statusEl.textContent="학교 평가계획 원본("+cur().pages+"쪽)을 붙이는 중…";
+      if(!window.PDFLib) throw new Error("nolib");
+      const r=await fetch(cur().doc); if(!r.ok) throw new Error("fetch");
+      const src=await PDFLib.PDFDocument.load(await r.arrayBuffer(),{ignoreEncryption:true});
+      const outDoc=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
+      (await outDoc.copyPages(src,src.getPageIndices())).forEach(p=>outDoc.addPage(p));
+      blob=new Blob([await outDoc.save()],{type:"application/pdf"}); docOk=true;
+    }catch(e){}
+    lastPdf={blob,name:"고등학교조사보고서_"+nm+".pdf",shots,docOk};
     pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     await submitToTeacher();
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
@@ -591,7 +580,7 @@ function showDone(ok,label){
   const m=document.getElementById("doneModal");
   document.getElementById("doneIcon").textContent=ok?"✅":"⚠️";
   document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
-  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요.\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
+  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요."+(lastPdf&&!lastPdf.docOk?"\n(평가계획 원본은 붙이지 못했어요. 인터넷 연결 후 다시 만들어 주세요.)":"")+"\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
   document.getElementById("doneShare").hidden=!ok;
   m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
 }
@@ -640,12 +629,7 @@ if(location.hash.indexOf("#demo")===0){
   const pick=decodeURIComponent(location.hash.slice(5))||"인천고등학교";
   const sc=SCH[pick]?pick:NAMES[0];
   const cl=SCH[sc].clubs.slice(0,3).map(c=>c.n);
-  S.v={grade:"9",cls:"탈레스",name:"예시학생",school:sc,why:"집에서 가깝고, 학교 특색 프로그램이 내 진로와 잘 맞는다.",commute:"버스 약 20분",
-    ev_focus:"수행평가가 40%인 과목이 많다. 글쓰기와 발표 수행평가가 많아서 지금부터 글쓰기 연습을 하겠다.",
-    feat_want:"진로 관련 프로그램에 참여해서 내 진로를 더 구체적으로 정하고 싶다.",
-    clubs:JSON.stringify(cl),club_why_0:"관심 있는 분야라 탐구해 보고 싶다.",club_why_1:"친구들과 함께 프로젝트를 해 보고 싶다.",club_why_2:"진로와 관련된 활동을 기록하고 싶다.",
-    ab:JSON.stringify(["수학","영어"]),ab_why:"고1 첫 시험을 잘 준비하고 싶어서",goal:"공부: 수학 1등급 목표, 매일 복습하기\n학교생활: 동아리 활동 열심히 하기\n진로: 진로 관련 책 3권 읽기"};
-  SCH[sc].ev.length&&missingSubj(SCH[sc]).forEach(m=>{S.v["evm_"+m]="지필 60% (중간 30 · 기말 30), 수행평가: 예시 40%";});
+  S.v={grade:"9",cls:"탈레스",name:"예시학생",school:sc,clubs:JSON.stringify(cl)};
   DEMO=true; history.replaceState(null,"",location.pathname);
   setTimeout(()=>{statusEl.textContent="예시 내용으로 채웠어요. 노란 버튼을 누르면 제출 테스트가 돼요.";},0);
 }
