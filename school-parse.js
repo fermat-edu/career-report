@@ -252,6 +252,13 @@ function scanEvalPdf(pages,fileName,out,keep){
     for(const raw of seg.slice(1)){ const L=norm(raw); if(/합\s*계/.test(L)) break;
       let m=L.match(/(1\s*차|2\s*차|중간|기말)\s*(시험|고사)?\s+(\d{2,3})\s+(\d{1,2}(?:\.\d)?)/);
       if(m){ exam.push([m[1],+m[4]]); pend=""; continue; }
+      // "1 차시험 ( 중간시험 ) 100 30" · "1차 지필평가 100점 30%" 같은 줄
+      if(/중간|기말|[12]\s*차\s*(시험|고사|지필)|지필/.test(L)&&!/수행/.test(L)){
+        const key=/1\s*차|중간/.test(L)?"중간":/2\s*차|기말/.test(L)?"기말":"";
+        const ns=(L.replace(/[12]\s*차/,"").match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(n=>n>0&&n<=100);
+        const i100=ns.indexOf(100), r=i100>=0&&ns.length>i100+1?ns[i100+1]:ns.filter(n=>n<100).pop();
+        if(key&&r){ exam.push([key,r]); pend=""; continue; }
+      }
       m=L.match(/^(.*?[가-힣].*?)\s+(\d{1,2})\s+(\d{1,2})(\s|$)/);
       if(m&&+m[2]===+m[3]&&!/평가|영역|만점|반영|선택형/.test(m[1])){ perf.push([norm((pend+" "+m[1]).replace(/^(수행|평가)\s+/,"")),+m[3]]); pend=""; continue; }
       if(/[가-힣]{2,}/.test(L)&&!/평가|영역|만점|반영|선택형|단답형|서술형|논술형|정기|시험\s*$/.test(L)&&L.length<30) pend=L; else pend="";
@@ -340,6 +347,7 @@ SP.analyze=async function(files,onStep){
   res.ev.forEach(e=>{const t=e.mid+e.fin+e.p.reduce((a,x)=>a+x[1],0); if(Math.abs(t-100)>0.5) e.check=true;});
   const cs=new Set(); res.clubs=res.clubs.filter(c=>{if(cs.has(c.n)) return false; cs.add(c.n); return true;});
   if(!res.ev.length) res.warn.push("평가 비율표를 찾지 못했어요. 요약표는 직접 적고, 원본은 그대로 붙어요.");
+  if(res.ev.length&&res.ev.filter(e=>/2\s*$/.test(e.s)).length>res.ev.length/2) res.warn.push("과목 이름이 ‘…2’(예: 공통국어2)로 끝나요. 2학기 평가계획 파일 같아요. 1학년 1학기는 학교알리미에서 자료제출일 ‘(1차) 4월’ 파일을 받아 올려 주세요.");
   if((files.club||[]).length&&!res.clubs.length) res.warn.push("동아리 이름을 찾지 못했어요. 동아리는 직접 적어 주세요.");
   return res;
 };

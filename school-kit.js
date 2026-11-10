@@ -9,7 +9,7 @@ const LIBS=[
  ["PDFLib","https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"],
  ["html2canvas","https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"],
  ["jspdf","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"],
- ["SchoolParse","school-parse.js?v=2"]];
+ ["SchoolParse","school-parse.js?v=3"]];
 function load(src){return new Promise((res,rej)=>{const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>rej(new Error("불러오기 실패: "+src)); document.head.appendChild(s);});}
 K.loadLibs=async function(){
   for(const [g,src] of LIBS) if(!window[g]) await load(src);
