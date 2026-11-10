@@ -282,7 +282,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="school-data.js?v=2"></script>
+<script src="school-data.js?v=4"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -386,10 +386,11 @@ function renderForm(){
     const miss=missingSubj(s);
     let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s)+evCards(s)+
       (miss.length?'<p class="note">※ 이 학교에서 받은 자료에는 '+esc(miss.join(", "))+' 평가계획이 없어요. 학교알리미(schoolinfo.go.kr)나 학교 홈페이지에서 확인하세요.</p>':'');
+    p2+='<a class="doclink" style="background:#b8860b" href="'+esc(s.fdoc)+'" target="_blank" rel="noopener">📄 특색사업 원본 열기 <small>('+s.fpages+'쪽 · PDF)</small></a>';
     h+=section("02.","1학년 과목별 평가 방법","c-green",p2,"2026학년도 1학기 기준");
     const picked=arr("clubs");
     let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 학교 운영계획서에 있는 활동 목적과 연간 활동이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요.'+
-      (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 동아리 설명 자료가 없어 이름을 보고 간단히 적었어요. 정확한 활동은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
+      (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요. 활동 내용은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
       '<div class="clubtools"><input type="text" id="clubq" placeholder="동아리 찾기 (예: 과학, 영어, 코딩)" aria-label="동아리 찾기" autocomplete="off"><span class="pickcount" id="pickcount">'+picked.length+' / '+MAXC+' 선택</span></div>'+
       '<div class="clist" id="clist">'+s.clubs.map((c,i)=>clubItem(c,i,picked.includes(c.n))).join("")+'</div>'+
       '<div class="subhead">내가 고른 동아리</div><div class="chosen" id="chosen">'+chosenHtml(s)+'</div>';
@@ -398,7 +399,7 @@ function renderForm(){
   document.getElementById("form").innerHTML=h;
 }
 function clubDetail(c){
-  return '<p>'+esc(c.d||"설명 자료 없음")+'</p>'+((c.a&&c.a.length)?'<div class="act"><b>연간 활동 계획</b><ol>'+c.a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ol></div>':'');
+  return (c.d?'<p>'+esc(c.d)+'</p>':'<p class="note">설명 자료 없음 (이름만 공개됨)</p>')+((c.a&&c.a.length)?'<div class="act"><b>연간 활동 계획</b><ol>'+c.a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ol></div>':'');
 }
 function clubItem(c,i,on){
   const sub=c.f?'<small>'+esc(c.f)+'</small>':'';
@@ -488,7 +489,7 @@ function evTable(s){
 function buildPdfPages(){
   const s=cur(), who=whoText(), out=[];
   out.push('<div class="pp cover"><div class="band" style="background:#3e9ca7"><span>고등학교 조사 보고서</span><span style="font-size:40px">🏫</span></div><div class="who" style="font-size:30px;font-family:var(--display);font-weight:400">'+esc(val("school"))+'</div><div class="who">'+esc(who)+'</div>'+
-    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">01 학교 정보 · 특색 &nbsp;|&nbsp; 02 과목별 평가 한눈에 보기 &nbsp;|&nbsp; 03 내가 고른 동아리<br>부록: 1학년 1학기 교수학습 및 평가 운영 계획 원본 ('+s.pages+'쪽)</div></div>');
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">01 학교 정보 · 특색 &nbsp;|&nbsp; 02 과목별 평가 한눈에 보기 &nbsp;|&nbsp; 03 내가 고른 동아리<br>부록 1: 1학년 1학기 교수학습 및 평가 운영 계획 원본 ('+s.pages+'쪽)<br>부록 2: 교육운영 특색사업 원본 ('+s.fpages+'쪽)</div></div>');
   out.push(ppPage("01.","학교 정보 · 특색","c-coral",
     '<div class="subhead">'+esc(val("school"))+'</div>'+factsHtml(s)+
     '<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>',true));
@@ -500,9 +501,11 @@ function buildPdfPages(){
   out.push(ppPage("03.","내가 고른 동아리","c-teal",
     picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
       return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(c.n)+(c.f?' <span class="src">('+esc(c.f)+')</span>':'')+'</b>'+clubDetail(c)+'</div>';}).join("")+
-    (s.clubs.some(c=>c.m)?'<p class="src">※ 이 학교는 동아리 설명 자료가 없어 이름을 보고 간단히 적었어요.</p>':'<p class="src">출처: '+esc(val("school"))+' 2026학년도 동아리 운영계획서</p>')));
-  out.push('<div class="pp cover"><div class="band" style="background:#1f5c2b;font-size:40px"><span>부록 · 평가계획 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 1학년 1학기 교수학습 및 평가 운영 계획</div>'+
+    (s.clubs.some(c=>c.m)?'<p class="src">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요.</p>':'<p class="src">출처: '+esc(val("school"))+' 2026학년도 동아리 운영계획서</p>')));
+  out.push('<div class="pp cover"><div class="band" style="background:#1f5c2b;font-size:40px"><span>부록 1 · 평가계획 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 1학년 1학기 교수학습 및 평가 운영 계획</div>'+
     '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">다음 쪽부터 학교에서 공개한 원본이 그대로 이어져요 ('+s.pages+'쪽).<br>시험·수행평가 전에 해당 과목의 <b>평가 방법과 반영 비율</b>, <b>수행평가 영역별 세부 기준</b>을 꼭 확인하세요.</div></div>');
+  out.push('<div class="pp cover"><div class="band" style="background:#e9b93a;font-size:40px"><span>부록 2 · 특색사업 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 교육운영 특색사업</div>'+
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">다음 쪽부터 학교의 특색사업 계획 원본이 그대로 이어져요 ('+s.fpages+'쪽).</div></div>');
   return out;
 }
 /* ---------- PDF 만들기 & 보내기 ---------- */
@@ -543,12 +546,18 @@ pdfBtn.addEventListener("click",async()=>{
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
     let blob=pdf.output("blob"), docOk=false;
     try{
-      statusEl.textContent="학교 평가계획 원본("+cur().pages+"쪽)을 붙이는 중…";
+      statusEl.textContent="학교 원본 자료("+(cur().pages+cur().fpages)+"쪽)를 붙이는 중…";
       if(!window.PDFLib) throw new Error("nolib");
-      const r=await fetch(cur().doc); if(!r.ok) throw new Error("fetch");
-      const src=await PDFLib.PDFDocument.load(await r.arrayBuffer(),{ignoreEncryption:true});
-      const outDoc=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
-      (await outDoc.copyPages(src,src.getPageIndices())).forEach(p=>outDoc.addPage(p));
+      const get=async u=>{const r=await fetch(u); if(!r.ok) throw new Error("fetch"); return PDFLib.PDFDocument.load(await r.arrayBuffer(),{ignoreEncryption:true});};
+      const ev=await get(cur().doc), ft=await get(cur().fdoc);
+      const mine=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
+      const outDoc=await PDFLib.PDFDocument.create();
+      const n=mine.getPageCount();
+      const head=await outDoc.copyPages(mine,[...Array(n).keys()]);
+      head.slice(0,n-1).forEach(p=>outDoc.addPage(p));
+      (await outDoc.copyPages(ev,ev.getPageIndices())).forEach(p=>outDoc.addPage(p));
+      outDoc.addPage(head[n-1]);
+      (await outDoc.copyPages(ft,ft.getPageIndices())).forEach(p=>outDoc.addPage(p));
       blob=new Blob([await outDoc.save()],{type:"application/pdf"}); docOk=true;
     }catch(e){}
     lastPdf={blob,name:"고등학교조사보고서_"+nm+".pdf",shots,docOk};
@@ -580,7 +589,7 @@ function showDone(ok,label){
   const m=document.getElementById("doneModal");
   document.getElementById("doneIcon").textContent=ok?"✅":"⚠️";
   document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
-  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요."+(lastPdf&&!lastPdf.docOk?"\n(평가계획 원본은 붙이지 못했어요. 인터넷 연결 후 다시 만들어 주세요.)":"")+"\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
+  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요."+(lastPdf&&!lastPdf.docOk?"\n(학교 원본 자료는 붙이지 못했어요. 인터넷 연결 후 다시 만들어 주세요.)":"")+"\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
   document.getElementById("doneShare").hidden=!ok;
   m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
 }
