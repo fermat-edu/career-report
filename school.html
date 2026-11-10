@@ -312,6 +312,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="school-data.js?v=5"></script>
 <script src="school-kit.js?v=2"></script>
+<script src="submit-kit.js?v=1"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -658,7 +659,9 @@ pdfBtn.addEventListener("click",async()=>{
   if(!val("name").trim()) return goTo("f_name","맨 위의 이름을 먼저 써 주세요.");
   if(!cur()) return goTo(val("school")===OWNKEY?"ownAnalyze":"f_school",val("school")===OWNKEY?"파일을 올리고 '이 내용으로 보고서 만들기'까지 눌러 주세요.":"희망 고등학교를 먼저 골라 주세요.");
   if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
-  pdfBtn.disabled=true;
+  pdfBtn.disabled=true; let sent=false;
+  SubmitKit.mark(QKEY,true);
+  SubmitKit.show("보고서 PDF를 만들어 선생님께 보내요.\n학교 원본 자료(평가계획·특색사업)가 함께 붙어서 파일이 커요.\n보통 1~3분 걸려요.",statusEl);
   try{
     statusEl.textContent="학교 원본 자료를 불러오는 중…";
     let evB=null, ftB=null, docOk=true;
@@ -676,10 +679,10 @@ pdfBtn.addEventListener("click",async()=>{
     const pages=[...stage.children];
     for(let i=0;i<pages.length;i++){
       statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
-      const cv=await html2canvas(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false});
+      const cv=await html2canvas(pages[i],{scale:1.6,backgroundColor:"#ffffff",useCORS:true,logging:false});
       const w=210, h=Math.max(297,cv.height*w/cv.width);
       if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p");
-      const jp=cv.toDataURL("image/jpeg",0.9); shots.push(jp);
+      const jp=cv.toDataURL("image/jpeg",0.8); shots.push(jp);
       pdf.addImage(jp,"JPEG",0,0,w,cv.height*w/cv.width);
     }
     stage.innerHTML="";
@@ -701,9 +704,9 @@ pdfBtn.addEventListener("click",async()=>{
     }catch(e){ docOk=false; }
     lastPdf={blob,name:"고등학교조사보고서_"+nm+".pdf",shots,docOk};
     pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
-    await submitToTeacher();
-  }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
-  finally{ pdfBtn.disabled=false; }
+    sent=true; await submitToTeacher();
+  }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 새로고침한 뒤 다시 해 보세요."; }
+  finally{ pdfBtn.disabled=false; if(!sent){ SubmitKit.hide(); SubmitKit.mark(QKEY,false); } }
 });
 
 async function deliver(blob,name){
@@ -736,27 +739,35 @@ document.getElementById("doneOk").addEventListener("click",()=>{document.getElem
 document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; if(lastPdf) deliver(lastPdf.blob,lastPdf.name);});
 
 function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
+const QKEY="school_submit";
 async function submitToTeacher(){
   if(!lastPdf) return;
   submitBtn.hidden=true;
-  statusEl.textContent="선생님께 제출하는 중… 창을 닫지 마세요.";
-  const ci=clsInfo(); const label=(FORM_NAME+"__"+ci.G+"학년_"+ci.full+"_"+val("name").trim()).replace(/\s+/g,"");
-  const body=JSON.stringify({label,pdf:await blobToB64(lastPdf.blob)});
-  try{
-    const r=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
-    const j=await r.json();
-    if(!j.ok) throw new Error(j.error||"fail");
+  const ci=clsInfo(); const label=lastPdf.label||(FORM_NAME+"__"+ci.G+"학년_"+ci.full+"_"+val("name").trim()).replace(/\s+/g,"");
+  SubmitKit.show(SubmitKit.sizeMsg(lastPdf.blob.size),statusEl);
+  const ok=await SubmitKit.post(SUBMIT_URL,QKEY,label,lastPdf.blob,statusEl);
+  SubmitKit.hide(); SubmitKit.mark(QKEY,false);
+  if(ok){
     lastPdf.submitted=true; showDone(true,label);
     statusEl.textContent="✅ 선생님께 제출 완료! 다시 제출하면 마지막에 낸 것으로 바뀌어요. 카톡으로도 보내려면 노란 버튼을 누르세요.";
-  }catch(e){
-    if(e instanceof TypeError){
-      try{ await fetch(SUBMIT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
-        lastPdf.submitted=true; statusEl.textContent="✅ 선생님께 제출했어요."; showDone(true,label); return; }catch(_){}
-    }
+  }else{
     submitBtn.hidden=false;
     statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요."; showDone(false);
   }
 }
+/* 화면이 잠기거나 창이 닫혀 다 못 보낸 제출 이어 보내기 */
+(async()=>{
+  const p=await SubmitKit.pending(QKEY);
+  if(p&&p.blob){
+    lastPdf={blob:p.blob,name:"고등학교조사보고서_"+((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+".pdf",shots:[],docOk:true,label:p.label};
+    pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
+    statusEl.textContent="지난번에 다 보내지 못한 보고서를 이어서 보내요…";
+    await submitToTeacher();
+  }else if(SubmitKit.wasBusy(QKEY)){
+    SubmitKit.mark(QKEY,false);
+    statusEl.textContent="⚠️ 지난번 제출이 중간에 멈췄어요. 'PDF 만들고 제출'을 다시 눌러 주세요. (쓴 내용은 그대로 저장돼 있어요)";
+  }
+})();
 submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await submitToTeacher();}finally{submitBtn.disabled=false;}});
 function download(blob,name){
   try{ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000);

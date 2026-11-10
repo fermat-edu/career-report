@@ -1,0 +1,77 @@
+/* 제출 도우미: 화면 꺼짐 막기 · 진행 알림창 · 잠금/끊김 뒤 이어 보내기 */
+(function(){
+  const DB="fermat-submit", ST="q";
+  function db(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB,1); r.onupgradeneeded=()=>r.result.createObjectStore(ST); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+  async function put(k,v){ const d=await db(); return new Promise((res,rej)=>{ const t=d.transaction(ST,"readwrite"); t.objectStore(ST).put(v,k); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+  async function get(k){ const d=await db(); return new Promise((res,rej)=>{ const q=d.transaction(ST).objectStore(ST).get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+  async function del(k){ const d=await db(); return new Promise(res=>{ const t=d.transaction(ST,"readwrite"); t.objectStore(ST).delete(k); t.oncomplete=res; t.onerror=res; }); }
+
+  /* 화면 꺼짐 막기 (지원하는 브라우저만) */
+  let lock=null, want=false;
+  async function grab(){ try{ if(want&&!lock&&navigator.wakeLock&&document.visibilityState==="visible"){ lock=await navigator.wakeLock.request("screen"); lock.addEventListener("release",()=>{lock=null;}); } }catch(e){} }
+  function awake(on){ want=!!on; if(on) grab(); else if(lock){ try{lock.release();}catch(e){} lock=null; } }
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") grab(); });
+
+  /* 진행 알림창 */
+  const css=document.createElement("style");
+  css.textContent='.skw{position:fixed;inset:0;z-index:9999;background:rgba(10,20,22,.55);display:flex;align-items:center;justify-content:center;padding:20px}'+
+   '.skw[hidden]{display:none}.skw>div{background:#fff;color:#1d2b2d;border-radius:18px;max-width:380px;width:100%;padding:24px 22px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25);font-family:inherit}'+
+   '.skw .sp{width:42px;height:42px;margin:0 auto 12px;border:4px solid #d6e6e8;border-top-color:#2f8792;border-radius:50%;animation:skr 1s linear infinite}@keyframes skr{to{transform:rotate(360deg)}}'+
+   '.skw h3{margin:0 0 8px;font-size:19px}.skw p{margin:6px 0;font-size:14.5px;line-height:1.55;white-space:pre-line}.skw .st{color:#2f8792;font-weight:700}.skw .tip{color:#6b7b7d;font-size:13px}';
+  document.head.appendChild(css);
+  const box=document.createElement("div"); box.className="skw"; box.hidden=true; box.setAttribute("role","alertdialog"); box.setAttribute("aria-live","polite");
+  box.innerHTML='<div><div class="sp" aria-hidden="true"></div><h3>제출하는 중이에요</h3><p class="msg"></p><p class="st"></p><p class="tip">끝나면 ‘제출 완료’ 창이 떠요. 그때까지 이 화면을 켜 두세요.\n혹시 화면이 잠겨도 다시 열면 이어서 보내요.</p></div>';
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(box)); if(document.body) document.body.appendChild(box);
+  let mo=null;
+  function show(msg,statusEl){
+    box.querySelector(".msg").textContent=msg||"";
+    const st=box.querySelector(".st"); st.textContent=statusEl?statusEl.textContent:"";
+    if(mo) mo.disconnect(); if(statusEl){ mo=new MutationObserver(()=>{ st.textContent=statusEl.textContent; }); mo.observe(statusEl,{childList:true,characterData:true,subtree:true}); }
+    box.hidden=false; awake(true);
+  }
+  function hide(){ box.hidden=true; if(mo){mo.disconnect();mo=null;} awake(false); }
+  function sizeMsg(bytes){ const mb=bytes/1048576; return "파일 크기 "+(mb<1?"1MB 미만":mb.toFixed(1)+"MB")+" · "+(mb<3?"30초~1분":mb<8?"1~2분":"2~4분")+" 정도 걸려요."; }
+
+  function b64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); }); }
+  const visible=()=>new Promise(res=>{ if(document.visibilityState==="visible") return res(); const f=()=>{ if(document.visibilityState==="visible"){ document.removeEventListener("visibilitychange",f); res(); } }; document.addEventListener("visibilitychange",f); });
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+  /* 보내기: 성공하면 true. 화면이 잠겨 끊기면 다시 열릴 때 자동으로 다시 보냄 */
+  async function post(url,key,label,blob,statusEl){
+    const rec={label,blob,time:Date.now()};
+    try{ await put(key,rec); }catch(e){}
+    const body=JSON.stringify({label,pdf:await b64(blob)});
+    for(let tryN=1;tryN<=4;tryN++){
+      let hiddenDuring=document.visibilityState!=="visible";
+      const onHide=()=>{ if(document.visibilityState!=="visible") hiddenDuring=true; };
+      document.addEventListener("visibilitychange",onHide);
+      try{
+        if(statusEl) statusEl.textContent=tryN===1?"선생님께 보내는 중…":"끊긴 제출을 다시 보내는 중… ("+tryN+"번째)";
+        const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+        const j=await r.json();
+        if(!j.ok) throw new Error(j.error||"fail");
+        document.removeEventListener("visibilitychange",onHide);
+        await del(key).catch(()=>{}); return true;
+      }catch(e){
+        document.removeEventListener("visibilitychange",onHide);
+        if(e instanceof TypeError && !hiddenDuring && navigator.onLine!==false){
+          // 응답만 못 읽은 경우가 많아요: 응답 없이 한 번 보내기
+          try{ await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body}); await del(key).catch(()=>{}); return true; }catch(_){}
+        }
+        if(tryN===4) return false;
+        if(statusEl) statusEl.textContent=hiddenDuring?"화면이 잠겨서 멈췄어요. 다시 열면 이어서 보내요.":"연결이 끊겼어요. 잠시 뒤 다시 보내요…";
+        await visible(); await sleep(1500);
+        if(navigator.onLine===false){ if(statusEl) statusEl.textContent="인터넷이 끊겼어요. 연결되면 다시 보내요."; await new Promise(r=>window.addEventListener("online",r,{once:true})); }
+      }
+    }
+    return false;
+  }
+  /* 지난번에 다 못 보낸 제출이 있으면 */
+  async function pending(key){ try{ return await get(key); }catch(e){ return null; } }
+  async function clear(key){ try{ await del(key); }catch(e){} }
+  /* PDF 만드는 중 표시 (창이 닫히면 다음에 열 때 알려 줌) */
+  function mark(key,on){ try{ on?localStorage.setItem(key+"_busy",String(Date.now())):localStorage.removeItem(key+"_busy"); }catch(e){} }
+  function wasBusy(key){ try{ const t=+localStorage.getItem(key+"_busy"); return t&&Date.now()-t<6*3600e3; }catch(e){ return false; } }
+
+  window.SubmitKit={show,hide,sizeMsg,post,pending,clear,awake,mark,wasBusy};
+})();

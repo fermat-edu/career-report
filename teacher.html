@@ -61,6 +61,10 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .progress{height:6px;background:var(--field);border-radius:99px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
 .years{display:flex;gap:6px;flex-wrap:wrap}
+.ftabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:-4px 0 4px}
+.ftab{font:inherit;font-weight:700;font-size:16px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 18px;color:var(--muted);cursor:pointer;display:flex;gap:8px;align-items:center}
+.ftab span{font-size:12px;font-weight:600;background:var(--line);color:var(--ink);border-radius:999px;padding:1px 8px}
+.ftab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .year{font:inherit;font-weight:700;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 16px;cursor:pointer}
 .year[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
 .year:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -82,7 +86,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 <body>
 <div class="wrap">
   <header>
-    <h1>진로탐구 제출함<small>선생님 전용</small></h1>
+    <h1>보고서 제출함<small>선생님 전용</small></h1>
     <button class="btn" id="logoutBtn" type="button" hidden>잠그기</button>
   </header>
 
@@ -95,7 +99,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 
   <section id="main" hidden>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
-      <div class="years" id="forms" role="group" aria-label="페이지 종류"></div>
+      <div class="ftabs" id="forms" role="tablist" aria-label="보고서 종류"></div>
       <div class="years" id="years" role="group" aria-label="연도"></div>
       <div class="stats" id="stats"></div>
       <div class="toolbar">
@@ -185,7 +189,9 @@ $("logoutBtn").addEventListener("click",()=>{KEY="";FILES=[];try{sessionStorage.
 
 /* 목록 */
 let YEAR=null, FORM=null;
-function forms(){ return [...new Set(FILES.map(f=>f.form))].sort((a,b)=>a==="진로탐구보고서"?-1:b==="진로탐구보고서"?1:a.localeCompare(b,"ko")); }
+const BASEFORMS=["진로탐구보고서","고등학교조사보고서"];
+const FORMNAME={"진로탐구보고서":"진로탐구 보고서","고등학교조사보고서":"고등학교 조사 보고서"};
+function forms(){ const extra=[...new Set(FILES.map(f=>f.form))].filter(x=>!BASEFORMS.includes(x)).sort((a,b)=>a.localeCompare(b,"ko")); return BASEFORMS.concat(extra); }
 const FF=()=>FILES.filter(f=>f.form===FORM);
 function years(){ return [...new Set(FF().map(f=>f.year))].sort((x,y)=>y-x); }
 function visible(){
@@ -207,7 +213,7 @@ function itemHtml(f){
 const openState={};
 function render(){
   const fs=forms(); if(!fs.includes(FORM)) FORM=fs[0]||"진로탐구보고서";
-  $("forms").innerHTML=fs.length>1?fs.map(x=>'<button type="button" class="year" data-form="'+esc(x)+'" aria-pressed="'+(x===FORM)+'">'+esc(x)+'</button>').join(""):"";
+  $("forms").innerHTML=fs.map(x=>{ const n=new Set(FILES.filter(f=>f.form===x).map(f=>f.key)).size; return '<button type="button" class="ftab" role="tab" data-form="'+esc(x)+'" aria-selected="'+(x===FORM)+'">'+esc(FORMNAME[x]||x)+'<span>'+n+'명</span></button>'; }).join("");
   const ys=years(); if(!ys.includes(YEAR)) YEAR=ys[0]||new Date().getFullYear();
   $("years").innerHTML=(ys.length?ys:[YEAR]).map(y=>'<button type="button" class="year" data-year="'+y+'" aria-pressed="'+(y===YEAR)+'">'+y+'년</button>').join("");
   const inYear=FF().filter(f=>f.year===YEAR);
@@ -222,6 +228,7 @@ function render(){
     '<div class="list">'+g.files.map(itemHtml).join("")+'</div></details>'
   ).join(""):'<div class="empty">'+(inYear.length?"찾는 학생이 없어요.":"아직 제출한 학생이 없어요. 학생이 'PDF 만들고 제출'을 누르면 여기에 나타나요.")+'</div>';
   $("zipBtn").textContent=YEAR+"년 전체 받기"; $("zipBtn").disabled=!groups.length;
+  if($("schoolCard")) $("schoolCard").hidden=FORM!=="고등학교조사보고서";
 }
 $("forms").addEventListener("click",e=>{const b=e.target.closest("[data-form]"); if(!b)return; FORM=b.dataset.form; YEAR=null; render();});
 $("years").addEventListener("click",e=>{const b=e.target.closest("[data-year]"); if(!b)return; YEAR=+b.dataset.year; render();});
