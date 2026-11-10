@@ -23,6 +23,14 @@ function doPost(e){try{const d=JSON.parse(e.postData.contents);
     else return out_({ok:false,error:'part'});
     return out_({ok:true});
   }
+  if(d.action==='ownDoc'){ // 학생이 직접 올린 학교 원본 (같은 파일은 한 번만 보관)
+    const h=String(d.hash||''); if(!/^[a-f0-9]{16,64}$/.test(h)) return out_({ok:false,error:'hash'});
+    const name='own_'+h+'.pdf', it=sfolder_().getFilesByName(name);
+    if(it.hasNext()) return out_({ok:true,id:it.next().getId()});
+    if(!d.pdf) return out_({ok:true,id:''});
+    const f=sfolder_().createFile(Utilities.newBlob(Utilities.base64Decode(d.pdf),'application/pdf',name));
+    return out_({ok:true,id:f.getId()});
+  }
   if(!d.pdf) return out_({ok:false,error:'no file'});
   const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','MMdd_HHmm');
   const name=String(d.label||'이름없음').replace(/[\\/:*?"<>|]/g,'').slice(0,60)+'_'+stamp+'.pdf';

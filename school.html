@@ -572,6 +572,7 @@ form.addEventListener("click",async e=>{
       OWN={name:OWNUP.school,year:OWNUP.year,...ed,tags:[],logo,pages:pd.ev?pd.ev.pages:0,fpages:pd.ft?pd.ft.pages:0,evToc:pd.ev?pd.ev.toc:[],featToc:pd.ft?pd.ft.toc:[],src:"own"};
       await idbPut("own_ev",pd.ev?pd.ev.bytes:null); await idbPut("own_feat",pd.ft?pd.ft.bytes:null); await idbPut("own",OWN);
       setArr("clubs",[]); save(); resetSend(); renderForm(); statusEl.textContent="✅ "+OWN.name+" 자료를 만들었어요. 아래에서 동아리 3개를 고르세요.";
+      OWNDOCS=null; ownDocIds().catch(()=>{}); // 동아리 고르는 동안 원본을 미리 선생님 쪽에 올려 둠
     }catch(err){ ownMsg("만들지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; }
     return;
   }
@@ -639,6 +640,25 @@ let lastPdf=null;
 function resetSend(){ if(pdfBtn.dataset.mode!=="send") return; pdfBtn.dataset.mode=""; pdfBtn.textContent="PDF 만들고 제출"; lastPdf=null; saveBtn.hidden=true; submitBtn.hidden=true; }
 saveBtn.addEventListener("click",()=>myPdf(download));
 function goTo(id,msg){ statusEl.textContent=msg; const f=document.getElementById(id); if(f){ f.scrollIntoView({block:"center"}); f.focus&&f.focus(); } }
+/* 직접 올린 학교: 원본 PDF를 선생님 제출함에도 올려 두어 선생님도 전체 보고서를 볼 수 있게 함 (같은 파일은 한 번만) */
+let OWNDOCS=null, OWNIDS=null;
+async function sha(u8){
+  try{ if(window.crypto&&crypto.subtle){ const h=await crypto.subtle.digest("SHA-256",u8); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,40); } }catch(e){}
+  let a=0x811c9dc5, c=0x01000193^u8.length; for(let i=0;i<u8.length;i++){ a=Math.imul(a^u8[i],16777619); c=Math.imul(c^u8[i],2246822519)>>>0; } // 보안 연결이 아닐 때 대신 쓰는 지문
+  return ((a>>>0).toString(16).padStart(8,"0")+c.toString(16).padStart(8,"0")+u8.length.toString(16).padStart(8,"0")); }
+function u8b64(u8){ let s=""; for(let i=0;i<u8.length;i+=32768) s+=String.fromCharCode.apply(null,u8.subarray(i,i+32768)); return btoa(s); }
+async function postJ(o){ const r=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(o)}); return r.json(); }
+function ownDocIds(){
+  if(OWNDOCS) return OWNDOCS;
+  OWNDOCS=(async()=>{ const out={};
+    for(const w of ["ev","feat"]){ const b=await idbGet("own_"+w); if(!b) continue; const u8=new Uint8Array(b), hash=await sha(u8);
+      let j=await postJ({action:"ownDoc",hash}); if(!j.ok) throw new Error(j.error||"own");
+      if(!j.id){ j=await postJ({action:"ownDoc",hash,pdf:u8b64(u8)}); if(!j.ok||!j.id) throw new Error(j.error||"own"); }
+      out[w]=j.id; }
+    return out; })();
+  OWNDOCS.catch(()=>{ OWNDOCS=null; });
+  return OWNDOCS;
+}
 /* ===== 보고서 쪽 구성 =====
    표지 → 목차 → 01 학교 정보 → 02 평가(첫 쪽: 과목별 평가 한눈에) → 과목마다 [과목 첫 쪽 + 그 과목 원본]
    → 03 동아리(첫 쪽: 고른 동아리 3개) → 동아리별 1쪽 → 04 특색사업(첫 쪽) + 특색사업 원본
@@ -739,6 +759,7 @@ async function snap(htmlList,label,scale,q){
 function schoolMeta(plan){ const s=cur(); if(!s) return null; let m=null;
   if(s.src==="builtin") m={src:"b",doc:s.doc||"",fdoc:s.fdoc||""};
   else if(s.src==="remote") m={src:"r",ev:s.evalId||"",ft:s.featId||""};
+  else if(s.src==="own"&&OWNIDS) m={src:"r",ev:OWNIDS.ev||"",ft:OWNIDS.feat||""};
   else m={src:"o"};
   m.plan=plan.map(x=>x.h!=null?x.h:(x.ev?"e"+x.ev[0]+"-"+x.ev[1]:"f"+x.ft[0]+"-"+x.ft[1])).join(",");
   return m; }
@@ -802,6 +823,8 @@ pdfBtn.addEventListener("click",async()=>{
   SubmitKit.mark(QKEY,true);
   SubmitKit.show("내 보고서(표지·목차·평가 요약·과목 첫 쪽·동아리)를 만들어 선생님께 보내요.\n보통 30초~1분이면 끝나요.",statusEl);
   try{
+    OWNIDS=null;
+    if(cur().src==="own"){ statusEl.textContent="학교 원본을 선생님 제출함에 올리는 중… (처음 한 번만)"; try{ OWNIDS=await ownDocIds(); }catch(e){ OWNIDS=null; } }
     const L=layout();
     const shots=await snap(L.H,"보고서 만드는 중…",1.4,0.78);
     const meta=schoolMeta(L.plan);
@@ -898,7 +921,7 @@ if(location.hash.indexOf("#demo")===0){
   setTimeout(()=>{statusEl.textContent="예시 내용으로 채웠어요. 노란 버튼을 누르면 제출 테스트가 돼요.";},0);
 }
 renderForm();
-idbGet("own").then(o=>{ if(o&&o.name){ OWN=o; if(val("school")===OWNKEY) renderForm(); } }).catch(()=>{});
+idbGet("own").then(o=>{ if(o&&o.name){ OWN=o; if(val("school")===OWNKEY){ renderForm(); ownDocIds().catch(()=>{}); } } }).catch(()=>{});
 loadRemote();
 if(!DEMO) idbGet("photos").then(ph=>{ if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); } }).catch(()=>{});
 if(!DEMO&&Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
