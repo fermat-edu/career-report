@@ -31,7 +31,13 @@ const CSS=`.sk{display:flex;flex-direction:column;gap:12px}
 .sk .clr textarea{min-height:40px;font-size:12.5px}
 .sk .cl{max-height:420px;overflow:auto;border:1px solid var(--line,#ccd);border-radius:10px;padding:4px 10px}
 .sk h4{margin:6px 0 0;font-size:14.5px}
-.sk .hint{font-size:12.5px;color:var(--muted,#666)}`;
+.sk .hint{font-size:12.5px;color:var(--muted,#666)}
+.sk .evhelp{background:#eef6f7;border:1px solid #bcd9dc;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.65;color:#1d2b2d}
+.sk .evhelp summary{cursor:pointer;font-weight:700}
+.sk .evhelp ol{margin:6px 0 4px;padding-left:20px}.sk .evhelp code{background:#fff;border:1px solid #cfdcdd;border-radius:4px;padding:0 4px;font-size:12.5px}
+.sk .evhelp .ex{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.sk .evhelp .ex div{background:#fff;border-radius:8px;padding:6px 8px;border:1px solid #d6e2e3;white-space:pre-line;font-size:12.5px}
+.sk .evhead{display:grid;grid-template-columns:2fr 70px 70px auto;gap:6px;font-size:12px;font-weight:700;color:var(--muted,#666);padding:0 11px}
+.sk .evsum{grid-column:1/-1;font-size:12.5px;color:#1f7a4d}.sk .evr.chk .evsum{color:#b26a00;font-weight:700}`;
 function injectCss(){ if(document.getElementById("skcss")) return; const s=document.createElement("style"); s.id="skcss"; s.textContent=CSS; document.head.appendChild(s); }
 
 // 1) 파일 올리는 칸
@@ -64,15 +70,24 @@ K.editorHtml=function(d,res){
    '<div class="skrow"><label>학교 구분<select data-k="type">'+["","남녀공학","남자고등학교","여자고등학교"].map(t=>'<option'+(t===(d.type||"")?' selected':'')+'>'+t+'</option>').join("")+'</select></label>'+
    '<label>1학년 학급 수<input type="number" data-k="cls" value="'+(d.cls||"")+'" min="0"></label></div>'+
    '<label>학교 특색 (한 줄에 하나, 비워도 돼요 · 원본은 뒤에 붙어요)<textarea data-k="feat" rows="3">'+esc((d.feat||[]).join("\n"))+'</textarea></label>'+
-   '<h4>1학년 1학기 과목별 평가 ('+ev.length+'과목) <span class="hint">주황색은 합계가 100이 아니라 확인이 필요한 과목이에요. 수행평가는 "이름 비율" 한 줄씩.</span></h4>'+
+   '<h4>1학년 1학기 과목별 평가 ('+ev.length+'과목)</h4>'+
+   '<details class="evhelp" open><summary>이 칸 보는 법 · 고치는 법</summary>'+
+   '<ol><li><b>과목 이름</b> · <b>중간 %</b> · <b>기말 %</b>: 정기고사(지필) 반영 비율이에요.</li>'+
+   '<li><b>아래 큰 칸</b>: 수행평가만 한 줄에 하나씩 <code>영역 이름 비율</code>로 적어요. 예: <code>독서 프로젝트 20</code></li>'+
+   '<li><b>주황색 테두리</b>: 중간+기말+수행 합계가 100이 아니에요. 원본을 보고 숫자를 고쳐 주세요. 맞으면 초록 글씨로 ‘합계 100%’가 떠요.</li>'+
+   '<li>큰 칸에 <code>1 차시험 ( 중간시험 ) 100 30</code>처럼 시험 줄이 들어가 있으면, 그 줄은 지우고 <b>마지막 숫자(반영 비율 30)</b>를 중간/기말 칸에 넣어요. (100은 만점이라 쓰지 않아요)</li>'+
+   '<li>과목 이름이 <b>공통국어2</b>처럼 ‘2’로 끝나면 <b>2학기 파일</b>이에요. 학교알리미에서 자료제출일 <b>(1차) 4월</b> 파일을 받아 다시 올려 주세요.</li></ol>'+
+   '<div class="ex"><div>❌ 잘못 정리된 예\n중간 0 · 기말 0\n1 차시험 ( 중간시험 ) 100 30\n2 차시험 ( 기말시험 ) 100 30\n포트폴리오 20</div><div>✅ 고친 예\n중간 30 · 기말 30\n포트폴리오 20\n(나머지 수행평가 영역…)\n→ 합계 100%</div></div></details>'+
+   '<div class="evhead"><span>과목</span><span>중간 %</span><span>기말 %</span><span></span></div>'+
    '<div data-ev>'+ev.map(evRow).join("")+'</div><button type="button" class="x" data-addev>+ 과목 추가</button>'+
    '<h4>동아리 ('+clubs.length+'개) <span class="hint">1학년이 들어갈 수 있는 동아리만 남기고 체크를 빼세요.</span></h4>'+
    '<div class="cl" data-cl>'+clubs.map(clubRow).join("")+'</div><button type="button" class="x" data-addcl>+ 동아리 추가</button>'+
    '</div>';
 };
+function sumTxt(t){ return Math.abs(t-100)>0.5?"⚠️ 합계 "+(Math.round(t*10)/10)+"% · 100%가 되도록 확인해 주세요":"✓ 합계 100%"; }
 function evRow(e){ const t=(+e.mid||0)+(+e.fin||0)+(e.p||[]).reduce((a,x)=>a+(+x[1]||0),0);
   return '<div class="evr'+(Math.abs(t-100)>0.5?' chk':'')+'"><input type="text" data-e="s" value="'+esc(e.s||"")+'" placeholder="과목"><input type="number" data-e="mid" value="'+(e.mid||0)+'" title="중간 %"><input type="number" data-e="fin" value="'+(e.fin||0)+'" title="기말 %">'+
-   '<button type="button" class="x" data-delev>빼기</button><textarea data-e="p" placeholder="수행평가 이름 비율 (한 줄에 하나)">'+esc((e.p||[]).map(x=>x[0]+" "+x[1]).join("\n"))+'</textarea></div>'; }
+   '<button type="button" class="x" data-delev>빼기</button><textarea data-e="p" placeholder="수행평가만 · 한 줄에 하나 · 예: 독서 프로젝트 20">'+esc((e.p||[]).map(x=>x[0]+" "+x[1]).join("\n"))+'</textarea><div class="evsum">'+sumTxt(t)+'</div></div>'; }
 function clubRow(c){ return '<div class="clr"><input type="checkbox" data-c="on" checked aria-label="포함"><div><input type="text" data-c="n" value="'+esc(c.n)+'"><textarea data-c="d" placeholder="설명 (원본에 있는 내용)">'+esc(c.d||"")+'</textarea><input type="hidden" data-c="a" value="'+esc(JSON.stringify(c.a||[]))+'"></div></div>'; }
 K.bindEditor=function(root){
   root.addEventListener("click",e=>{
@@ -80,7 +95,7 @@ K.bindEditor=function(root){
     else if(e.target.closest("[data-delev]")){ e.target.closest(".evr").remove(); }
     else if(e.target.closest("[data-addcl]")){ root.querySelector("[data-cl]").insertAdjacentHTML("beforeend",clubRow({n:"",d:"",a:[]})); }
   });
-  root.addEventListener("input",e=>{ const r=e.target.closest(".evr"); if(!r) return; const d=readEv(r); const t=d.mid+d.fin+d.p.reduce((a,x)=>a+x[1],0); r.classList.toggle("chk",Math.abs(t-100)>0.5); });
+  root.addEventListener("input",e=>{ const r=e.target.closest(".evr"); if(!r) return; const d=readEv(r); const t=d.mid+d.fin+d.p.reduce((a,x)=>a+x[1],0); r.classList.toggle("chk",Math.abs(t-100)>0.5); const sm=r.querySelector(".evsum"); if(sm) sm.textContent=sumTxt(t); });
 };
 function readEv(r){ const v=k=>r.querySelector('[data-e="'+k+'"]').value;
   const p=v("p").split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*%?$/); return m?[m[1].trim(),+m[2]]:[l,0];});
