@@ -761,7 +761,7 @@ function schoolMeta(plan){ const s=cur(); if(!s) return null; let m=null;
   else if(s.src==="remote") m={src:"r",ev:s.evalId||"",ft:s.featId||""};
   else if(s.src==="own"&&OWNIDS) m={src:"r",ev:OWNIDS.ev||"",ft:OWNIDS.feat||""};
   else m={src:"o"};
-  m.plan=plan.map(x=>x.h!=null?x.h:(x.ev?"e"+x.ev[0]+"-"+x.ev[1]:"f"+x.ft[0]+"-"+x.ft[1])).join(",");
+  m.name=String(s.name||"").replace(/\s+/g,""); m.plan=plan.map(x=>x.h!=null?x.h:(x.ev?"e"+x.ev[0]+"-"+x.ev[1]:"f"+x.ft[0]+"-"+x.ft[1])).join(",");
   return m; }
 function shotsToPdf(shots,meta){
   const {jsPDF}=window.jspdf; let pdf=null;
@@ -829,7 +829,8 @@ pdfBtn.addEventListener("click",async()=>{
     const shots=await snap(L.H,"보고서 만드는 중…",1.4,0.78);
     const meta=schoolMeta(L.plan);
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    lastPdf={blob:shotsToPdf(shots,meta),name:"고등학교조사보고서_"+nm+".pdf",shots:shots.map(x=>x.jp),docOk:true,plan:meta.plan,full:null};
+    const sn=String(cur().name||"").replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"");
+    lastPdf={blob:shotsToPdf(shots,meta),name:nm+"_"+(sn||"고등학교조사")+".pdf",shots:shots.map(x=>x.jp),docOk:true,plan:meta.plan,full:null};
     pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     sent=true; await submitToTeacher();
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 새로고침한 뒤 다시 해 보세요."; }
@@ -886,8 +887,8 @@ async function submitToTeacher(){
 (async()=>{
   const p=await SubmitKit.pending(QKEY);
   if(p&&p.blob){
-    let plan=null; try{ const d=await PDFLib.PDFDocument.load(await p.blob.arrayBuffer(),{updateMetadata:false}); const mt=String(d.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(mt) plan=JSON.parse(decodeURIComponent(mt[1])).plan||null; }catch(e){}
-    lastPdf={blob:p.blob,name:"고등학교조사보고서_"+((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+".pdf",shots:[],docOk:true,label:p.label,plan,full:null};
+    let plan=null, sn=""; try{ const d=await PDFLib.PDFDocument.load(await p.blob.arrayBuffer(),{updateMetadata:false}); const mt=String(d.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(mt){ const mm=JSON.parse(decodeURIComponent(mt[1])); plan=mm.plan||null; sn=mm.name||""; } }catch(e){}
+    lastPdf={blob:p.blob,name:((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+"_"+(sn||"고등학교조사")+".pdf",shots:[],docOk:true,label:p.label,plan,full:null};
     pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     statusEl.textContent="지난번에 다 보내지 못한 보고서를 이어서 보내요…";
     await submitToTeacher();
