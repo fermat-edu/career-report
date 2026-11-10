@@ -448,7 +448,7 @@ function aliGuide(open){
   ];
   return '<details class="aguide"'+(open?' open':'')+'><summary>📷 학교알리미에서 파일 받는 방법 (사진으로 보기)<span class="arrow" aria-hidden="true">▼</span></summary><div class="ag-body">'+
    '<p class="note">컴퓨터에서 하면 가장 편해요. 휴대폰으로 받으면 파일은 <b>내 파일 → 다운로드</b> 폴더에 저장돼요. 새 학년도 1차 공시는 보통 <b>4월 말</b>에 올라와서, 그 전에는 작년 자료만 있을 수 있어요.</p>'+
-   st.map((x,i)=>'<figure class="ag-step"><figcaption><span class="ag-n">'+(i+1)+'</span><b>'+x[1]+'</b><br>'+x[2]+'</figcaption><img src="guide/'+x[0]+'.jpg?v=1" alt="'+x[1]+' 화면" loading="lazy"></figure>').join("")+
+   st.map((x,i)=>'<figure class="ag-step"><figcaption><span class="ag-n">'+(i+1)+'</span><b>'+x[1]+'</b><br>'+x[2]+'</figcaption><a href="guide/'+x[0]+'.jpg?v=1" target="_blank" rel="noopener" title="크게 보기"><img src="guide/'+x[0]+'.jpg?v=1" alt="'+x[1]+' 화면" loading="lazy"></a></figure>').join("")+
    '<p class="pguide">받은 파일을 아래 칸에 넣어요: <b>평가계획</b> → 평가계획 칸(여러 개 한꺼번에 선택 가능), <b>동아리 운영계획서</b> → 동아리 칸, <b>특색사업</b> → 특색사업 칸. hwp·hwpx·pdf·xlsx 모두 돼요. (사진을 누르면 크게 보여요)</p>'+
    '</div></details>';
 }
