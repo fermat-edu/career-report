@@ -663,9 +663,15 @@ async function snap(htmlList,label,scale,q){
   }
   stage.innerHTML=""; return out;
 }
-function shotsToPdf(shots){
+/* 선생님 페이지가 원본을 붙일 수 있게 어느 학교 자료인지 PDF 속성에 적어 둠 */
+function schoolMeta(){ const s=cur(); if(!s) return null;
+  if(s.src==="builtin") return {src:"b",name:s.name,doc:s.doc||"",fdoc:s.fdoc||""};
+  if(s.src==="remote") return {src:"r",name:s.name,ev:s.evalId||"",ft:s.featId||""};
+  return null; }
+function shotsToPdf(shots,meta){
   const {jsPDF}=window.jspdf; let pdf=null;
   shots.forEach(x=>{ const w=210, h=Math.max(297,x.ratio*w); if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p"); pdf.addImage(x.jp,"JPEG",0,0,w,x.ratio*w); });
+  if(meta) try{ pdf.setProperties({title:"고등학교 조사 보고서",keywords:"FERMAT_SCHOOL:"+encodeURIComponent(JSON.stringify(meta))}); }catch(e){}
   return pdf.output("blob");
 }
 /* 학생이 갖고 다닐 전체 PDF (원본 붙임) — 카톡·저장할 때만 만들어요 */
@@ -726,7 +732,7 @@ pdfBtn.addEventListener("click",async()=>{
     const shots=await snap(idx.map(i=>html[i]),"보고서 만드는 중…",1.6,0.8);
     const parts={}; idx.forEach((i,k)=>parts[i]=shots[k]);
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    lastPdf={blob:shotsToPdf(shots),name:"고등학교조사보고서_"+nm+".pdf",shots:shots.map(x=>x.jp),docOk:true,parts,full:null};
+    lastPdf={blob:shotsToPdf(shots,schoolMeta()),name:"고등학교조사보고서_"+nm+".pdf",shots:shots.map(x=>x.jp),docOk:true,parts,full:null};
     pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     sent=true; await submitToTeacher();
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 새로고침한 뒤 다시 해 보세요."; }

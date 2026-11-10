@@ -130,6 +130,7 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
 (function(){
 const API="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -241,7 +242,39 @@ $("refreshBtn").addEventListener("click",async()=>{ $("refreshBtn").disabled=tru
 
 async function getBlob(id){ const j=await api({action:"file",id});
   const bin=atob(j.pdf), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-  return {blob:new Blob([u8],{type:"application/pdf"}),name:j.name}; }
+  let blob=new Blob([u8],{type:"application/pdf"});
+  if(/^고등학교조사보고서__/.test(j.name)) blob=await withOriginals(u8,blob);
+  return {blob,name:j.name}; }
+/* 고등학교 조사 보고서: 학생이 낸 4쪽 뒤에 선생님 쪽에 있는 학교 원본(평가계획·특색사업)을 붙임 */
+const DOCS={};
+function b64u8(b){ const s=atob(b), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
+function docOf(key,get){ if(!DOCS[key]) DOCS[key]=get().catch(e=>{ delete DOCS[key]; throw e; }); return DOCS[key]; }
+async function origBytes(m,which){
+  if(m.src==="b"){ const path=which==="ev"?m.doc:m.fdoc; if(!path) return null;
+    return docOf(path,async()=>{ const r=await fetch(path); if(!r.ok) throw new Error("doc"); return new Uint8Array(await r.arrayBuffer()); }); }
+  if(m.src==="r"){ const id=which==="ev"?m.ev:m.ft; if(!id) return null;
+    return docOf(id,async()=>{ const r=await fetch(API+"?action=schooldoc&id="+encodeURIComponent(id)); const j=await r.json(); if(!j.ok) throw new Error("doc"); return b64u8(j.pdf); }); }
+  return null;
+}
+async function withOriginals(u8,blob){
+  if(!window.PDFLib) return blob;
+  try{
+    const mine=await PDFLib.PDFDocument.load(u8,{updateMetadata:false});
+    const mt=String(mine.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(!mt) return blob; // 예전 제출(원본이 이미 들어 있음)
+    const m=JSON.parse(decodeURIComponent(mt[1]));
+    const out=await PDFLib.PDFDocument.create(); out.setTitle("고등학교 조사 보고서 (원본 포함)");
+    (await out.copyPages(mine,mine.getPageIndices())).forEach(p=>out.addPage(p));
+    let added=0;
+    for(const w of ["ev","ft"]){ try{ const b=await origBytes(m,w); if(!b) continue; const d=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true});
+      (await out.copyPages(d,d.getPageIndices())).forEach(p=>out.addPage(p)); added+=d.getPageCount(); }catch(e){} }
+    if(!added) return blob;
+    const font=await out.embedFont(PDFLib.StandardFonts.Helvetica), N=out.getPageCount();
+    out.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
+      pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
+      pg.drawText(t,{x:sz.width/2-w/2,y:6.5,size:9,font,color:PDFLib.rgb(0.35,0.35,0.35)}); });
+    return new Blob([await out.save()],{type:"application/pdf"});
+  }catch(e){ return blob; }
+}
 function saveBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),600000);
   // 브라우저가 자동 다운로드를 막는 경우를 위해, 직접 누를 수 있는 링크도 보여줌
   const box=$("dlbox"); box.hidden=false;
