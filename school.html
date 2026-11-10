@@ -280,7 +280,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
     <button class="btn" id="midSaveBtn" type="button">중간 저장</button>
     <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
     <button class="btn" id="submitBtn" type="button" hidden>다시 제출</button>
-    <button class="btn" id="saveBtn" type="button" hidden>파일로 저장</button>
+    <button class="btn" id="saveBtn" type="button" hidden>내 PDF 저장 (원본 포함)</button>
     <button class="btn primary" id="pdfBtn" type="button">PDF 만들고 제출</button>
   </div>
 </div>
@@ -294,7 +294,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
     <p id="doneText"></p>
     <div class="mbtns">
       <button class="btn" id="doneOk" type="button">확인</button>
-      <button class="btn primary" id="doneShare" type="button">카톡으로도 보내기</button>
+      <button class="btn primary" id="doneShare" type="button">내 PDF 받기 (원본 포함)</button>
     </div>
   </div>
 </div>
@@ -647,11 +647,70 @@ try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.c
 const pdfBtn=document.getElementById("pdfBtn"), saveBtn=document.getElementById("saveBtn"), submitBtn=document.getElementById("submitBtn");
 let lastPdf=null;
 function resetSend(){ if(pdfBtn.dataset.mode!=="send") return; pdfBtn.dataset.mode=""; pdfBtn.textContent="PDF 만들고 제출"; lastPdf=null; saveBtn.hidden=true; submitBtn.hidden=true; }
-saveBtn.addEventListener("click",()=>{ if(lastPdf) download(lastPdf.blob,lastPdf.name); });
+saveBtn.addEventListener("click",()=>myPdf(download));
 function goTo(id,msg){ statusEl.textContent=msg; const f=document.getElementById(id); if(f){ f.scrollIntoView({block:"center"}); f.focus&&f.focus(); } }
 
+/* 화면 쪽들을 그림으로 찍기 */
+async function snap(htmlList,label,scale,q){
+  const stage=document.getElementById("pdfStage"); stage.innerHTML=htmlList.join("");
+  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+  await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
+  const out=[], pages=[...stage.children];
+  for(let i=0;i<pages.length;i++){
+    statusEl.textContent=label+" ("+(i+1)+"/"+pages.length+"쪽)";
+    const cv=await html2canvas(pages[i],{scale,backgroundColor:"#ffffff",useCORS:true,logging:false});
+    out.push({jp:cv.toDataURL("image/jpeg",q),ratio:cv.height/cv.width});
+  }
+  stage.innerHTML=""; return out;
+}
+function shotsToPdf(shots){
+  const {jsPDF}=window.jspdf; let pdf=null;
+  shots.forEach(x=>{ const w=210, h=Math.max(297,x.ratio*w); if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p"); pdf.addImage(x.jp,"JPEG",0,0,w,x.ratio*w); });
+  return pdf.output("blob");
+}
+/* 학생이 갖고 다닐 전체 PDF (원본 붙임) — 카톡·저장할 때만 만들어요 */
+async function buildFull(){
+  if(lastPdf.full) return lastPdf.full;
+  statusEl.textContent="학교 원본 자료를 불러오는 중…";
+  let evDoc=null, ftDoc=null, docOk=true;
+  try{ const b=await getDocBytes(cur(),"ev"); if(b) evDoc=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){ docOk=false; }
+  try{ const b=await getDocBytes(cur(),"feat"); if(b) ftDoc=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){ docOk=false; }
+  const evN=evDoc?evDoc.getPageCount():0, ftN=ftDoc?ftDoc.getPageCount():0;
+  const html=buildPdfPages(evN,ftN), keep=lastPdf.parts||{};
+  const need=html.map((h,i)=>keep[i]&&(i===0||i===2||i===4)?null:h);
+  const fresh=await snap(need.filter(Boolean),"내 PDF 만드는 중…",1.6,0.8); let k=0;
+  const shots=need.map((h,i)=>h?fresh[k++]:keep[i]);
+  let blob=shotsToPdf(shots);
+  try{
+    statusEl.textContent="원본("+(evN+ftN)+"쪽)을 붙이고 쪽 번호를 넣는 중…";
+    const mine=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
+    const outDoc=await PDFLib.PDFDocument.create();
+    const head=await outDoc.copyPages(mine,mine.getPageIndices()); let h=0;
+    for(let i=0;i<5;i++) outDoc.addPage(head[h++]);
+    if(evN){ outDoc.addPage(head[h++]); (await outDoc.copyPages(evDoc,evDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
+    if(ftN){ outDoc.addPage(head[h++]); (await outDoc.copyPages(ftDoc,ftDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
+    const font=await outDoc.embedFont(PDFLib.StandardFonts.Helvetica), N=outDoc.getPageCount();
+    outDoc.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
+      pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
+      pg.drawText(t,{x:sz.width/2-w/2,y:6.5,size:9,font,color:PDFLib.rgb(0.35,0.35,0.35)}); });
+    blob=new Blob([await outDoc.save()],{type:"application/pdf"});
+  }catch(e){ docOk=false; }
+  lastPdf.full=blob; lastPdf.docOk=docOk; lastPdf.shots=shots.map(x=>x.jp);
+  statusEl.textContent=docOk?"내 PDF 완성! (원본 "+(evN+ftN)+"쪽 포함)":"내 PDF 완성! (학교 원본은 불러오지 못했어요)";
+  return blob;
+}
+async function myPdf(fn){
+  if(!lastPdf) return;
+  if(lastPdf.full) return fn(lastPdf.full,lastPdf.name);
+  pdfBtn.disabled=true; saveBtn.disabled=true;
+  SubmitKit.show("학교 원본 자료를 붙여서 내가 갖고 다닐 PDF를 만들어요.\n쪽수가 많아서 30초~1분쯤 걸려요.",statusEl);
+  try{ const b=await buildFull(); SubmitKit.hide(); await fn(b,lastPdf.name); }
+  catch(e){ SubmitKit.hide(); statusEl.textContent="PDF를 만들지 못했어요. 다시 눌러 주세요."; }
+  finally{ pdfBtn.disabled=false; saveBtn.disabled=false; }
+}
+
 pdfBtn.addEventListener("click",async()=>{
-  if(lastPdf && pdfBtn.dataset.mode==="send"){ return deliver(lastPdf.blob,lastPdf.name); }
+  if(lastPdf && pdfBtn.dataset.mode==="send"){ return myPdf(deliver); }
   if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
   const ci=clsInfo();
   if(!ci.G) return goTo("f_grade","맨 위의 학년을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.");
@@ -661,49 +720,14 @@ pdfBtn.addEventListener("click",async()=>{
   if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
   pdfBtn.disabled=true; let sent=false;
   SubmitKit.mark(QKEY,true);
-  SubmitKit.show("보고서 PDF를 만들어 선생님께 보내요.\n학교 원본 자료(평가계획·특색사업)가 함께 붙어서 파일이 커요.\n보통 1~3분 걸려요.",statusEl);
+  SubmitKit.show("내 보고서(표지·학교 정보·평가 요약·동아리)를 선생님께 보내요.\n보통 20~40초면 끝나요.",statusEl);
   try{
-    statusEl.textContent="학교 원본 자료를 불러오는 중…";
-    let evB=null, ftB=null, docOk=true;
-    try{ evB=await getDocBytes(cur(),"ev"); }catch(e){ docOk=false; }
-    try{ ftB=await getDocBytes(cur(),"feat"); }catch(e){ docOk=false; }
-    let evDoc=null, ftDoc=null;
-    try{ if(evB) evDoc=await PDFLib.PDFDocument.load(evB,{ignoreEncryption:true}); }catch(e){ docOk=false; }
-    try{ if(ftB) ftDoc=await PDFLib.PDFDocument.load(ftB,{ignoreEncryption:true}); }catch(e){ docOk=false; }
-    const evN=evDoc?evDoc.getPageCount():0, ftN=ftDoc?ftDoc.getPageCount():0;
-    const stage=document.getElementById("pdfStage");
-    stage.innerHTML=buildPdfPages(evN,ftN).join("");
-    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-    await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
-    const {jsPDF}=window.jspdf; let pdf=null; const shots=[];
-    const pages=[...stage.children];
-    for(let i=0;i<pages.length;i++){
-      statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
-      const cv=await html2canvas(pages[i],{scale:1.6,backgroundColor:"#ffffff",useCORS:true,logging:false});
-      const w=210, h=Math.max(297,cv.height*w/cv.width);
-      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p");
-      const jp=cv.toDataURL("image/jpeg",0.8); shots.push(jp);
-      pdf.addImage(jp,"JPEG",0,0,w,cv.height*w/cv.width);
-    }
-    stage.innerHTML="";
+    const html=buildPdfPages(0,0); const idx=[0,2,3,4];
+    const shots=await snap(idx.map(i=>html[i]),"보고서 만드는 중…",1.6,0.8);
+    const parts={}; idx.forEach((i,k)=>parts[i]=shots[k]);
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    let blob=pdf.output("blob");
-    try{
-      statusEl.textContent="원본("+(evN+ftN)+"쪽)을 붙이고 쪽 번호를 넣는 중…";
-      const mine=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
-      const outDoc=await PDFLib.PDFDocument.create();
-      const head=await outDoc.copyPages(mine,mine.getPageIndices()); let k=0;
-      for(let i=0;i<5;i++) outDoc.addPage(head[k++]);
-      if(evN){ outDoc.addPage(head[k++]); (await outDoc.copyPages(evDoc,evDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
-      if(ftN){ outDoc.addPage(head[k++]); (await outDoc.copyPages(ftDoc,ftDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
-      const font=await outDoc.embedFont(PDFLib.StandardFonts.Helvetica), N=outDoc.getPageCount();
-      outDoc.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
-        pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
-        pg.drawText(t,{x:sz.width/2-w/2,y:6.5,size:9,font,color:PDFLib.rgb(0.35,0.35,0.35)}); });
-      blob=new Blob([await outDoc.save()],{type:"application/pdf"});
-    }catch(e){ docOk=false; }
-    lastPdf={blob,name:"고등학교조사보고서_"+nm+".pdf",shots,docOk};
-    pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
+    lastPdf={blob:shotsToPdf(shots),name:"고등학교조사보고서_"+nm+".pdf",shots:shots.map(x=>x.jp),docOk:true,parts,full:null};
+    pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     sent=true; await submitToTeacher();
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 새로고침한 뒤 다시 해 보세요."; }
   finally{ pdfBtn.disabled=false; if(!sent){ SubmitKit.hide(); SubmitKit.mark(QKEY,false); } }
@@ -731,12 +755,12 @@ function showDone(ok,label){
   const m=document.getElementById("doneModal");
   document.getElementById("doneIcon").textContent=ok?"✅":"⚠️";
   document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
-  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요."+(lastPdf&&!lastPdf.docOk?"\n(학교 원본 자료는 붙이지 못했어요. 인터넷 연결 후 다시 만들어 주세요.)":"")+"\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
+  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요.\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.\n\n평가계획·특색사업 원본까지 붙은 ‘내 PDF’는\n아래 버튼으로 받아서 갖고 다니세요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
   document.getElementById("doneShare").hidden=!ok;
   m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
 }
 document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true;});
-document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; if(lastPdf) deliver(lastPdf.blob,lastPdf.name);});
+document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; myPdf(deliver);});
 
 function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
 const QKEY="school_submit";
@@ -749,7 +773,7 @@ async function submitToTeacher(){
   SubmitKit.hide(); SubmitKit.mark(QKEY,false);
   if(ok){
     lastPdf.submitted=true; showDone(true,label);
-    statusEl.textContent="✅ 선생님께 제출 완료! 다시 제출하면 마지막에 낸 것으로 바뀌어요. 카톡으로도 보내려면 노란 버튼을 누르세요.";
+    statusEl.textContent="✅ 선생님께 제출 완료! 원본까지 붙은 내 PDF는 '내 PDF 저장' 또는 노란 버튼으로 받으세요.";
   }else{
     submitBtn.hidden=false;
     statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요."; showDone(false);
@@ -760,7 +784,7 @@ async function submitToTeacher(){
   const p=await SubmitKit.pending(QKEY);
   if(p&&p.blob){
     lastPdf={blob:p.blob,name:"고등학교조사보고서_"+((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+".pdf",shots:[],docOk:true,label:p.label};
-    pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
+    pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     statusEl.textContent="지난번에 다 보내지 못한 보고서를 이어서 보내요…";
     await submitToTeacher();
   }else if(SubmitKit.wasBusy(QKEY)){
