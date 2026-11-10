@@ -240,6 +240,17 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 .pp .toc td.pg{text-align:right;width:70px;font-weight:700;color:#2f8792}
 .pp .toc tr.sub td{padding:5px 6px 5px 26px;font-size:13.5px;color:#333;border-bottom:1px dotted #d6dddd}
 .pp .toc tr.sub td.pg{font-weight:500}
+
+.aguide{border:1px solid var(--line,#ddd);border-radius:12px;margin:12px 0;background:#fff}
+.aguide>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;font-weight:700}
+.aguide>summary::-webkit-details-marker{display:none}
+.aguide>summary .arrow{margin-left:auto;transition:transform .2s}
+.aguide[open]>summary .arrow{transform:rotate(180deg)}
+.ag-body{padding:0 14px 14px}
+.ag-step{margin:14px 0 0;padding:0}
+.ag-step figcaption{line-height:1.6;margin-bottom:8px}
+.ag-n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#e53935;color:#fff;font-size:13px;font-weight:700;margin-right:6px}
+.ag-step img{display:block;max-width:100%;width:560px;height:auto;border:1px solid #ddd;border-radius:8px}
 </style>
 
 </head>
@@ -423,16 +434,34 @@ function docLink(s,which){ const pages=which==="ev"?s.pages:s.fpages; if(!pages)
   const label=which==="ev"?'📄 '+esc(s.name)+' 1학년 1학기 평가계획 원본 열기':'📄 특색사업 원본 열기', st=which==="ev"?'':' style="background:#b8860b"';
   if(s.src==="builtin") return '<a class="doclink"'+st+' href="'+esc(which==="ev"?s.doc:s.fdoc)+'" target="_blank" rel="noopener">'+label+' <small>('+pages+'쪽 · PDF)</small></a>';
   return '<button type="button" class="doclink"'+st+' data-opendoc="'+which+'" style="border:0;cursor:pointer;font:inherit;font-weight:700;'+(which==="ev"?'':'background:#b8860b')+'">'+label+' <small>('+pages+'쪽 · PDF)</small></button>'; }
+function aliGuide(open){
+  const st=[
+   ["g1","학교알리미 접속 → 학교 검색","<b>schoolinfo.go.kr</b>에 들어가 맨 위 검색창에 학교 이름(예: 인제고등학교)을 쓰고 돋보기를 눌러요."],
+   ["g2","검색 결과에서 학교 이름 누르기","같은 이름이 여러 개면 주소(인천광역시 …)를 보고 맞는 학교를 골라요."],
+   ["g3","학교 페이지를 맨 아래까지 내리기","급식·학사일정 아래에 <b>공시정보</b> 칸이 있어요. (컴퓨터 화면에서는 ‘교육활동 / 학업성취사항’ 탭으로 보여요.)"],
+   ["g4","① 평가계획 찾기","STEP 02 공시분류 → <b>학업성취사항</b>, STEP 03 공시항목 → <b>교과별(학년별) 교수·학습 및 평가계획에 관한 사항</b>을 골라요."],
+   ["g5","1학기 평가계획 파일 모두 받기","자료제출일을 <b>(1차) 4월</b>로 바꾸고 ‘선택’을 눌러요. (9월 3차는 2학기 계획) ‘더보기’를 눌러 국어·수학·영어… <b>과목 파일을 전부</b> 받아요. 파일 이름을 누르면 다운로드, ‘미리보기’는 보기만 돼요."],
+   ["g6","② 특색사업 찾기","STEP 02 → <b>교육활동</b>, STEP 03 → <b>교육운영 특색사업 계획</b>을 골라요."],
+   ["g7","특색사업 파일 받기","‘주요정책사업’과 ‘기타 교육운영 특색사업’에 있는 파일을 받아요."],
+   ["g8","③ 동아리 찾기","STEP 02 → <b>교육활동</b>, STEP 03 → <b>동아리 활동 현황</b>을 골라요. 공시년월은 가장 최근 것으로 둬요."],
+   ["g9","동아리 운영계획서 받기","‘동아리 운영계획서 및 동아리별 운영 현황’ 아래 파일(동아리·자율동아리)을 받아요."]
+  ];
+  return '<details class="aguide"'+(open?' open':'')+'><summary>📷 학교알리미에서 파일 받는 방법 (사진으로 보기)<span class="arrow" aria-hidden="true">▼</span></summary><div class="ag-body">'+
+   '<p class="note">컴퓨터에서 하면 가장 편해요. 휴대폰으로 받으면 파일은 <b>내 파일 → 다운로드</b> 폴더에 저장돼요. 새 학년도 1차 공시는 보통 <b>4월 말</b>에 올라와서, 그 전에는 작년 자료만 있을 수 있어요.</p>'+
+   st.map((x,i)=>'<figure class="ag-step"><figcaption><span class="ag-n">'+(i+1)+'</span><b>'+x[1]+'</b><br>'+x[2]+'</figcaption><img src="guide/'+x[0]+'.jpg?v=1" alt="'+x[1]+' 화면" loading="lazy"></figure>').join("")+
+   '<p class="pguide">받은 파일을 아래 칸에 넣어요: <b>평가계획</b> → 평가계획 칸(여러 개 한꺼번에 선택 가능), <b>동아리 운영계획서</b> → 동아리 칸, <b>특색사업</b> → 특색사업 칸. hwp·hwpx·pdf·xlsx 모두 돼요. (사진을 누르면 크게 보여요)</p>'+
+   '</div></details>';
+}
 function ownHtml(){
   if(OWN) return '<div class="pguide">직접 올린 파일로 정리한 <b>'+esc(OWN.name)+' ('+OWN.year+')</b> 자료예요. <button type="button" class="pickbtn" id="ownReset">다른 파일로 다시 하기</button></div>';
-  return '<div class="pguide"><b>목록에 없는 학교는 직접 올려요.</b> 학교알리미(schoolinfo.go.kr)에서 학교를 검색해 공시정보의 파일을 받아 올리면 자동으로 정리돼요. 정리한 내용은 이 기기에만 저장돼요.</div>'+
+  return '<div class="pguide"><b>목록에 없는 학교는 직접 올려요.</b> 학교알리미(schoolinfo.go.kr)에서 학교를 검색해 공시정보의 파일을 받아 올리면 자동으로 정리돼요. 정리한 내용은 이 기기에만 저장돼요.</div>'+aliGuide(true)+
     SchoolKit.uploadHtml("ownUp")+'<div><button type="button" class="btn primary" id="ownAnalyze">자동 정리하기</button></div><p class="note" id="ownMsg"></p><div id="ownEditor"></div><div><button type="button" class="btn primary" id="ownUse" hidden>이 내용으로 보고서 만들기</button></div>';
 }
 function renderForm(){
   const s=cur(); let h="";
   let p1='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
    '<label class="schoolpick" for="f_school">희망 고등학교<select id="f_school" data-id="school">'+optionsHtml()+'</select></label>';
-  if(val("school")===OWNKEY) p1+=ownHtml();
+  p1+= val("school")===OWNKEY ? ownHtml() : aliGuide(false);
   if(s) p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+'<div class="subhead">학교 특색 프로그램</div>'+featList(s);
   else if(val("school")!==OWNKEY) p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
   h+=section("01.","희망 학교","c-coral",p1);
