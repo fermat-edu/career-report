@@ -223,6 +223,23 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 .club .cd .act ol,.pp .act ol,.cbox .act ol{margin:4px 0 0;padding-left:22px}
 .club .cd .act b,.pp .act b{color:var(--ink);font-size:13px}
 .pp .cbox p{margin:0;font-size:13.5px} .pp .cbox .act{font-size:12.5px;color:#333}
+
+/* 표지 · 목차 */
+.pp.cover2{height:1123px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:60px;box-sizing:border-box;position:relative}
+.cover2 .logo{width:210px;height:210px;object-fit:contain}
+.cover2 .logo.ph{font-size:120px;line-height:210px;text-align:center}
+.cover2 .sch{font-family:var(--display);font-size:52px;color:#1f2a2c;text-align:center}
+.cover2 .ttl{font-family:var(--display);font-size:34px;color:#fff;background:#3e9ca7;padding:10px 40px;border-radius:999px}
+.cover2 .yr{font-size:15px;color:#5f6d70}
+.cover2 .whobox{border-collapse:collapse;margin-top:30px;min-width:380px;font-size:20px}
+.cover2 .whobox th{background:#1f5c2b;color:#fff;font-weight:500;padding:10px 18px;width:90px}
+.cover2 .whobox td{border:1px solid #9aa6a8;padding:10px 18px;font-weight:700}
+.cover2 .brand{position:absolute;bottom:40px;font-size:15px;color:#5f6d70} .cover2 .brand b{color:#e32626}
+.pp .toc{width:100%;border-collapse:collapse;font-size:15px}
+.pp .toc td{padding:9px 6px;border-bottom:1px dotted #9aa6a8}
+.pp .toc td.pg{text-align:right;width:70px;font-weight:700;color:#2f8792}
+.pp .toc tr.sub td{padding:5px 6px 5px 26px;font-size:13.5px;color:#333;border-bottom:1px dotted #d6dddd}
+.pp .toc tr.sub td.pg{font-weight:500}
 </style>
 
 </head>
@@ -282,13 +299,16 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="school-data.js?v=4"></script>
+<script src="school-data.js?v=5"></script>
+<script src="school-kit.js?v=2"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
 const FORM_NAME="고등학교조사보고서";
-const SCH=window.SCHOOLS||{};
-const NAMES=Object.keys(SCH);
+const BUILTIN=window.SCHOOLS||{};
+const SCH={}; Object.keys(BUILTIN).forEach(n=>{SCH[n]=Object.assign({name:n,year:2026,src:"builtin",tags:[],feat:[],evToc:[],featToc:[]},BUILTIN[n]);});
+const OWNKEY="__own__"; let OWN=null, OWNRES=null, OWNUP=null;
+const names=()=>Object.keys(SCH).sort((a,b)=>a.localeCompare(b,"ko"));
 const MAXC=3;
 const CORE=["공통국어1","공통수학1","공통영어1","한국사1","통합사회1","통합과학1"];
 const AFTER=["국어","수학","영어","통합사회","통합과학","한국사","과학탐구·실험","논술·글쓰기","AI·코딩","제2외국어","예체능","자격증·검정"];
@@ -326,7 +346,32 @@ function clsInfo(){
   return {G,name,full:name?(G||"")+name+"반":""};
 }
 const whoText=()=>{const c=clsInfo(); return [c.full||(c.G?c.G+"학년":""),val("name").trim()].filter(Boolean).join(" ");};
-const cur=()=>SCH[val("school")]||null;
+const cur=()=>val("school")===OWNKEY?OWN:(SCH[val("school")]||null);
+const sname=()=>{const s=cur(); return s?s.name:"";};
+const syear=()=>{const s=cur(); return (s&&s.year)||2026;};
+const b64=b=>{const x=atob(b),u=new Uint8Array(x.length);for(let i=0;i<x.length;i++)u[i]=x.charCodeAt(i);return u;};
+function fromRec(rec){ let d; try{d=JSON.parse(rec.data);}catch(e){return null;} if(!d||!d.school) return null;
+  return {name:d.school,year:+d.year||0,type:d.type||"",cls:d.cls||null,tags:d.tags||[],feat:d.feat||[],ev:d.ev||[],clubs:d.clubs||[],pages:d.evPages||0,fpages:d.featPages||0,evToc:d.evToc||[],featToc:d.featToc||[],logo:d.logo||"",logoOnly:!!d.logoOnly,src:"remote",evalId:rec.evalId||"",featId:rec.featId||""}; }
+async function loadRemote(){
+  try{ const r=await fetch(SUBMIT_URL+"?action=schools&_="+Date.now()); const j=await r.json(); if(!j.ok||!j.schools) return;
+    const logos={};
+    j.schools.map(fromRec).filter(Boolean).forEach(x=>{ if(x.logoOnly){logos[x.name]=x.logo;return;} const old=SCH[x.name]; if(!old||(old.year||0)<=x.year){ if(old&&!x.logo) x.logo=old.logo; SCH[x.name]=x; } });
+    Object.keys(logos).forEach(n=>{ if(SCH[n]&&!SCH[n].logo) SCH[n].logo=logos[n]; });
+    const sel=document.getElementById("f_school"); if(sel) sel.innerHTML=optionsHtml();
+    const a=document.activeElement; if(cur()&&cur().src==="remote"&&!(a&&/INPUT|TEXTAREA/.test(a.tagName))) renderForm();
+  }catch(e){}
+}
+async function getDocBytes(s,which){
+  if(!s) return null; const pages=which==="ev"?s.pages:s.fpages; if(!pages) return null;
+  if(s.src==="builtin"){ const r=await fetch(which==="ev"?s.doc:s.fdoc); if(!r.ok) throw new Error("fetch"); return new Uint8Array(await r.arrayBuffer()); }
+  if(s.src==="remote"){ const id=which==="ev"?s.evalId:s.featId; if(!id) return null; const r=await fetch(SUBMIT_URL+"?action=schooldoc&id="+encodeURIComponent(id)); const j=await r.json(); if(!j.ok) throw new Error("doc"); return b64(j.pdf); }
+  if(s.src==="own"){ const b=await idbGet("own_"+which); return b?new Uint8Array(b):null; }
+  return null;
+}
+function optionsHtml(){
+  return '<option value="">— 학교를 골라 주세요 —</option>'+names().map(n=>{const x=SCH[n]; return '<option value="'+esc(n)+'"'+(n===val("school")?' selected':'')+'>'+esc(n)+(x.year&&x.year!==2026?' ('+x.year+' 공시)':'')+'</option>';}).join("")+
+    '<option value="'+OWNKEY+'"'+(val("school")===OWNKEY?' selected':'')+'>＋ 목록에 없는 학교 – 파일 직접 올리기</option>';
+}
 const fmt=n=>(Math.round(n*10)/10).toString();
 
 /* ---------- 작성 안내 ---------- */
@@ -356,14 +401,15 @@ function section(num,title,color,inner,tag){
 
 /* ---------- 학교 정보 조각 (입력 화면·PDF 같이 사용) ---------- */
 function factsHtml(s){
-  return '<div class="facts"><div class="fact"><span>학교 구분</span><b>'+esc(s.type)+'</b></div>'+
-    '<div class="fact"><span>1학년 학급 수(2026)</span><b>'+(s.cls?s.cls+'학급':'학교 확인')+'</b></div>'+
-    '<div class="fact"><span>동아리(1학년 참여)</span><b>'+s.clubs.length+'개</b></div></div>'+
-    (s.tags.length?'<div class="chips">'+s.tags.map(t=>'<span class="chip t">'+esc(t)+'</span>').join("")+'</div>':'');
+  return '<div class="facts"><div class="fact"><span>학교 구분</span><b>'+esc(s.type||"학교 확인")+'</b></div>'+
+    '<div class="fact"><span>1학년 학급 수('+(s.year||2026)+')</span><b>'+(s.cls?s.cls+'학급':'학교 확인')+'</b></div>'+
+    '<div class="fact"><span>동아리(1학년 참여)</span><b>'+(s.clubs||[]).length+'개</b></div></div>'+
+    ((s.tags||[]).length?'<div class="chips">'+s.tags.map(t=>'<span class="chip t">'+esc(t)+'</span>').join("")+'</div>':'');
 }
+function featList(s){ return (s.feat||[]).length?'<ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>':'<p class="note">특색 프로그램은 뒤에 붙는 특색사업 원본을 보세요.</p>'; }
 function evSum(e){ const pf=e.p.reduce((a,x)=>a+x[1],0); return {ex:e.mid+e.fin,pf}; }
 function evCards(s){
-  if(!s.ev.length) return '<div class="empty">평가 자료가 없어요.</div>';
+  if(!(s.ev||[]).length) return '<div class="empty">요약표가 없어요. 원본 평가계획을 보세요.</div>';
   return '<div class="legend"><span><i style="background:#4a7fc1"></i>중간(1차)시험</span><span><i style="background:#2f5f9e"></i>기말(2차)시험</span><span><i style="background:var(--coral)"></i>수행평가</span></div><div class="ev">'+
    s.ev.map(e=>{const t=evSum(e);
     return '<div class="evc"><div class="evh"><b>'+esc(e.s)+'</b><span>'+(t.ex?'지필 '+fmt(t.ex)+'% (중간 '+fmt(e.mid)+' · 기말 '+fmt(e.fin)+')':'지필시험 없음')+' · 수행 '+fmt(t.pf)+'%</span></div>'+
@@ -373,21 +419,29 @@ function evCards(s){
 function missingSubj(s){ const have=s.ev.map(e=>e.s); return CORE.filter(c=>!have.includes(c)); }
 
 /* ---------- 입력 화면 ---------- */
-function docLink(s){ return '<a class="doclink" href="'+esc(s.doc)+'" target="_blank" rel="noopener">📄 '+esc(val("school"))+' 1학년 1학기 평가계획 원본 열기 <small>('+s.pages+'쪽 · PDF)</small></a>'; }
+function docLink(s,which){ const pages=which==="ev"?s.pages:s.fpages; if(!pages) return "";
+  const label=which==="ev"?'📄 '+esc(s.name)+' 1학년 1학기 평가계획 원본 열기':'📄 특색사업 원본 열기', st=which==="ev"?'':' style="background:#b8860b"';
+  if(s.src==="builtin") return '<a class="doclink"'+st+' href="'+esc(which==="ev"?s.doc:s.fdoc)+'" target="_blank" rel="noopener">'+label+' <small>('+pages+'쪽 · PDF)</small></a>';
+  return '<button type="button" class="doclink"'+st+' data-opendoc="'+which+'" style="border:0;cursor:pointer;font:inherit;font-weight:700;'+(which==="ev"?'':'background:#b8860b')+'">'+label+' <small>('+pages+'쪽 · PDF)</small></button>'; }
+function ownHtml(){
+  if(OWN) return '<div class="pguide">직접 올린 파일로 정리한 <b>'+esc(OWN.name)+' ('+OWN.year+')</b> 자료예요. <button type="button" class="pickbtn" id="ownReset">다른 파일로 다시 하기</button></div>';
+  return '<div class="pguide"><b>목록에 없는 학교는 직접 올려요.</b> 학교알리미(schoolinfo.go.kr)에서 학교를 검색해 공시정보의 파일을 받아 올리면 자동으로 정리돼요. 정리한 내용은 이 기기에만 저장돼요.</div>'+
+    SchoolKit.uploadHtml("ownUp")+'<div><button type="button" class="btn primary" id="ownAnalyze">자동 정리하기</button></div><p class="note" id="ownMsg"></p><div id="ownEditor"></div><div><button type="button" class="btn primary" id="ownUse" hidden>이 내용으로 보고서 만들기</button></div>';
+}
 function renderForm(){
   const s=cur(); let h="";
   let p1='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
-   '<label class="schoolpick" for="f_school">희망 고등학교<select id="f_school" data-id="school"><option value="">— 학교를 골라 주세요 —</option>'+
-   NAMES.map(n=>'<option value="'+esc(n)+'"'+(n===val("school")?' selected':'')+'>'+esc(n)+'</option>').join("")+'</select></label>';
-  if(s) p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+'<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>';
-  else p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
+   '<label class="schoolpick" for="f_school">희망 고등학교<select id="f_school" data-id="school">'+optionsHtml()+'</select></label>';
+  if(val("school")===OWNKEY) p1+=ownHtml();
+  if(s) p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+'<div class="subhead">학교 특색 프로그램</div>'+featList(s);
+  else if(val("school")!==OWNKEY) p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
   h+=section("01.","희망 학교","c-coral",p1);
   if(s){
     const miss=missingSubj(s);
-    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s)+evCards(s)+
+    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s,"ev")+evCards(s)+
       (miss.length?'<p class="note">※ 이 학교에서 받은 자료에는 '+esc(miss.join(", "))+' 평가계획이 없어요. 학교알리미(schoolinfo.go.kr)나 학교 홈페이지에서 확인하세요.</p>':'');
-    p2+='<a class="doclink" style="background:#b8860b" href="'+esc(s.fdoc)+'" target="_blank" rel="noopener">📄 특색사업 원본 열기 <small>('+s.fpages+'쪽 · PDF)</small></a>';
-    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,"2026학년도 1학기 기준");
+    p2+=docLink(s,"feat");
+    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,s.year+"학년도 1학기 기준");
     const picked=arr("clubs");
     let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 학교 운영계획서에 있는 활동 목적과 연간 활동이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요.'+
       (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요. 활동 내용은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
@@ -440,6 +494,39 @@ form.addEventListener("click",e=>{
   const u=e.target.closest("[data-unpick]"); if(u){ togglePick(u.dataset.unpick); return; }
 });
 
+/* 직접 올리기 · 원본 열기 */
+const ownMsg=t=>{const m=document.getElementById("ownMsg"); if(m) m.textContent=t; statusEl.textContent=t;};
+form.addEventListener("click",async e=>{
+  if(e.target.closest("#ownAnalyze")){
+    const b=e.target.closest("#ownAnalyze"); OWNUP=SchoolKit.readUpload(document.getElementById("ownUp"));
+    if(!OWNUP.school) return ownMsg("학교 이름을 써 주세요.");
+    if(!OWNUP.files.ev.length&&!OWNUP.files.club.length&&!OWNUP.files.feat.length) return ownMsg("파일을 하나 이상 골라 주세요.");
+    b.disabled=true;
+    try{ ownMsg("도구 불러오는 중…"); await SchoolKit.loadLibs(); OWNRES=await SchoolParse.analyze(OWNUP.files,ownMsg);
+      const ed=document.getElementById("ownEditor"); ed.innerHTML=SchoolKit.editorHtml({ev:OWNRES.ev,clubs:OWNRES.clubs,feat:[]},OWNRES); SchoolKit.bindEditor(ed);
+      document.getElementById("ownUse").hidden=false; ownMsg("정리했어요. 내용을 확인하고 고칠 곳이 있으면 고친 뒤 아래 버튼을 누르세요.");
+    }catch(err){ ownMsg("정리하지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; }
+    return;
+  }
+  if(e.target.closest("#ownUse")){
+    const b=e.target.closest("#ownUse"); if(!OWNRES) return; b.disabled=true;
+    try{ const ed=SchoolKit.readEditor(document.getElementById("ownEditor").querySelector("[data-editor]"));
+      const pd=await SchoolKit.buildPdfs(OWNRES,OWNUP.school,OWNUP.year,ownMsg);
+      const logo=OWNUP.logo?await SchoolKit.logoDataUrl(OWNUP.logo):"";
+      OWN={name:OWNUP.school,year:OWNUP.year,...ed,tags:[],logo,pages:pd.ev?pd.ev.pages:0,fpages:pd.ft?pd.ft.pages:0,evToc:pd.ev?pd.ev.toc:[],featToc:pd.ft?pd.ft.toc:[],src:"own"};
+      await idbPut("own_ev",pd.ev?pd.ev.bytes:null); await idbPut("own_feat",pd.ft?pd.ft.bytes:null); await idbPut("own",OWN);
+      setArr("clubs",[]); save(); resetSend(); renderForm(); statusEl.textContent="✅ "+OWN.name+" 자료를 만들었어요. 아래에서 동아리 3개를 고르세요.";
+    }catch(err){ ownMsg("만들지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; }
+    return;
+  }
+  if(e.target.closest("#ownReset")){ OWN=null; OWNRES=null; idbPut("own",null).catch(()=>{}); setArr("clubs",[]); save(); resetSend(); renderForm(); return; }
+  const od=e.target.closest("[data-opendoc]");
+  if(od){ const w=window.open("","_blank"); statusEl.textContent="원본을 여는 중…";
+    try{ const by=await getDocBytes(cur(),od.dataset.opendoc); const u=URL.createObjectURL(new Blob([by],{type:"application/pdf"})); if(w) w.location=u; else location.href=u; statusEl.textContent="원본을 새 창에 열었어요."; }
+    catch(err){ if(w) w.close(); statusEl.textContent="원본을 열지 못했어요. 인터넷 연결을 확인해 주세요."; }
+  }
+});
+
 /* 사진 */
 const picker=document.createElement("input"); picker.type="file"; picker.accept="image/*"; picker.multiple=true; picker.hidden=true; document.body.appendChild(picker);
 let pickFor=null;
@@ -483,29 +570,45 @@ function ppPage(num,title,color,inner,info){
     (info?'<div class="infoline"><div>학년 : <span>'+esc(clsInfo().G)+'</span></div><div>반 : <span>'+esc(clsInfo().full)+'</span></div><div>이름 : <span>'+T("name")+'</span></div></div>':'')+inner+'</div></div>';
 }
 function evTable(s){
+  if(!(s.ev||[]).length) return '<p class="note">요약표가 없어요. 뒤에 붙은 원본 평가계획을 보세요.</p>';
   return '<table class="evtbl"><thead><tr><th>과목</th><th>중간</th><th>기말</th><th>수행</th><th>수행평가 내용 (비율)</th></tr></thead><tbody>'+
     s.ev.map(e=>{const t=evSum(e); return '<tr><td class="s">'+esc(e.s)+'</td><td class="n">'+(e.mid?fmt(e.mid)+'%':'-')+'</td><td class="n">'+(e.fin?fmt(e.fin)+'%':'-')+'</td><td class="n">'+fmt(t.pf)+'%</td><td>'+e.p.map(p=>esc(p[0])+' '+fmt(p[1])+'%').join('<br>')+'</td></tr>';}).join("")+'</tbody></table>';
 }
-function buildPdfPages(){
-  const s=cur(), who=whoText(), out=[];
-  out.push('<div class="pp cover"><div class="band" style="background:#3e9ca7"><span>고등학교 조사 보고서</span><span style="font-size:40px">🏫</span></div><div class="who" style="font-size:30px;font-family:var(--display);font-weight:400">'+esc(val("school"))+'</div><div class="who">'+esc(who)+'</div>'+
-    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">01 학교 정보 · 특색 &nbsp;|&nbsp; 02 과목별 평가 한눈에 보기 &nbsp;|&nbsp; 03 내가 고른 동아리<br>부록 1: 1학년 1학기 교수학습 및 평가 운영 계획 원본 ('+s.pages+'쪽)<br>부록 2: 교육운영 특색사업 원본 ('+s.fpages+'쪽)</div></div>');
-  out.push(ppPage("01.","학교 정보 · 특색","c-coral",
-    '<div class="subhead">'+esc(val("school"))+'</div>'+factsHtml(s)+
-    '<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>',true));
+// 쪽 배치: 1 표지, 2 목차, 3 학교 정보, 4 평가 요약, 5 동아리, (부록1 표지 + 평가 원본), (부록2 표지 + 특색 원본)
+function pagePlan(evN,ftN){
+  const p={cover:1,toc:2,info:3,ev:4,club:5}; let n=5;
+  if(evN){ p.div1=++n; p.evStart=n+1; n+=evN; }
+  if(ftN){ p.div2=++n; p.ftStart=n+1; n+=ftN; }
+  p.total=n; return p;
+}
+function tocRow(t,pg,sub){ return '<tr class="'+(sub?'sub':'')+'"><td>'+t+'</td><td class="pg">'+pg+'</td></tr>'; }
+function buildPdfPages(evN,ftN){
+  const s=cur(), c=clsInfo(), out=[], P=pagePlan(evN,ftN), Y=s.year||2026;
+  out.push('<div class="pp cover2">'+(s.logo?'<img class="logo" src="'+s.logo+'" alt="">':'<div class="logo ph">🏫</div>')+
+    '<div class="sch">'+esc(s.name)+'</div><div class="ttl">고등학교 조사 보고서</div><div class="yr">'+Y+'학년도 1학년 1학기 · 평가 방법 · 동아리 · 특색사업</div>'+
+    '<table class="whobox"><tr><th>학년</th><td>'+esc(c.G)+'학년</td></tr><tr><th>반</th><td>'+esc(c.full)+'</td></tr><tr><th>이름</th><td>'+T("name")+'</td></tr></table>'+
+    '<div class="brand"><b>Fermat</b> education</div></div>');
+  let toc='<table class="toc">'+tocRow('<b>01</b> 학교 정보 · 특색',P.info)+tocRow('<b>02</b> 1학년 과목별 평가 한눈에 보기',P.ev)+tocRow('<b>03</b> 내가 고른 동아리 ('+arr("clubs").map(esc).join(", ")+')',P.club);
+  if(P.div1){ toc+=tocRow('<b>부록 1</b> 1학년 1학기 교수학습 및 평가 운영 계획 (원본 '+evN+'쪽)',P.div1);
+    (s.evToc||[]).forEach(([t,p])=>{ toc+=tocRow('· '+esc(t),P.evStart+p-1,true); }); }
+  if(P.div2){ toc+=tocRow('<b>부록 2</b> 교육운영 특색사업 (원본 '+ftN+'쪽)',P.div2);
+    (s.featToc||[]).forEach(([t,p])=>{ toc+=tocRow('· '+esc(t),P.ftStart+p-1,true); }); }
+  toc+='</table><p class="src">쪽 번호는 각 쪽 맨 아래 가운데에 있어요. 시험·수행평가 전에 해당 과목 쪽을 펼쳐 <b>평가 방법과 반영 비율</b>, <b>수행평가 세부 기준</b>을 확인하세요.</p>';
+  out.push(ppPage("","목차","c-dark",toc,true));
+  out.push(ppPage("01.","학교 정보 · 특색","c-coral",'<div class="subhead">'+esc(s.name)+'</div>'+factsHtml(s)+'<div class="subhead">학교 특색 프로그램</div>'+featList(s)));
   const miss=missingSubj(s);
   out.push(ppPage("02.","1학년 과목별 평가 한눈에 보기","c-green",
-    '<p class="src">2026학년도 1학년 1학기 교수학습 및 평가 운영 계획 기준 · 지필(중간·기말)+수행평가=100% · 수행평가 과제·채점 기준·시기는 뒤에 붙은 원본을 보세요.</p>'+evTable(s)+
-    (miss.length?'<p class="src">※ 받은 자료에 없는 과목: '+esc(miss.join(", "))+' (학교알리미·학교 홈페이지에서 확인)</p>':'')));
+    '<p class="src">'+Y+'학년도 1학년 1학기 교수학습 및 평가 운영 계획 기준 · 지필(중간·기말)+수행평가=100% · 수행평가 과제·채점 기준·시기는 '+(P.div1?P.evStart+'쪽부터 붙은 원본':'원본')+'을 보세요.</p>'+evTable(s)+
+    (miss.length&&(s.ev||[]).length?'<p class="src">※ 요약표에 없는 과목: '+esc(miss.join(", "))+' (원본·학교알리미에서 확인)</p>':'')));
   const picked=arr("clubs");
   out.push(ppPage("03.","내가 고른 동아리","c-teal",
-    picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
-      return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(c.n)+(c.f?' <span class="src">('+esc(c.f)+')</span>':'')+'</b>'+clubDetail(c)+'</div>';}).join("")+
-    (s.clubs.some(c=>c.m)?'<p class="src">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요.</p>':'<p class="src">출처: '+esc(val("school"))+' 2026학년도 동아리 운영계획서</p>')));
-  out.push('<div class="pp cover"><div class="band" style="background:#1f5c2b;font-size:40px"><span>부록 1 · 평가계획 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 1학년 1학기 교수학습 및 평가 운영 계획</div>'+
-    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">다음 쪽부터 학교에서 공개한 원본이 그대로 이어져요 ('+s.pages+'쪽).<br>시험·수행평가 전에 해당 과목의 <b>평가 방법과 반영 비율</b>, <b>수행평가 영역별 세부 기준</b>을 꼭 확인하세요.</div></div>');
-  out.push('<div class="pp cover"><div class="band" style="background:#e9b93a;font-size:40px"><span>부록 2 · 특색사업 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(val("school"))+'<br>2026학년도 교육운영 특색사업</div>'+
-    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">다음 쪽부터 학교의 특색사업 계획 원본이 그대로 이어져요 ('+s.fpages+'쪽).</div></div>');
+    picked.map((n,k)=>{const cl=(s.clubs||[]).find(x=>x.n===n)||{n,d:""};
+      return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(cl.n)+(cl.f?' <span class="src">('+esc(cl.f)+')</span>':'')+'</b>'+clubDetail(cl)+'</div>';}).join("")+
+    ((s.clubs||[]).some(x=>x.m)?'<p class="src">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요.</p>':'<p class="src">출처: '+esc(s.name)+' 동아리 운영계획서</p>')));
+  if(P.div1) out.push('<div class="pp cover"><div class="band" style="background:#1f5c2b;font-size:40px"><span>부록 1 · 평가계획 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(s.name)+'<br>'+Y+'학년도 1학년 1학기 교수학습 및 평가 운영 계획</div>'+
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">'+P.evStart+'쪽부터 학교에서 공개한 원본이 그대로 이어져요 ('+evN+'쪽).<br>과목별 시작 쪽은 2쪽 목차를 보세요.</div></div>');
+  if(P.div2) out.push('<div class="pp cover"><div class="band" style="background:#e9b93a;font-size:40px"><span>부록 2 · 특색사업 원본</span><span style="font-size:36px">📄</span></div><div class="who" style="font-size:22px">'+esc(s.name)+'<br>'+Y+'학년도 교육운영 특색사업</div>'+
+    '<div class="who" style="font-size:14px;font-weight:400;color:#5f6d70;line-height:1.9">'+P.ftStart+'쪽부터 학교의 특색사업 계획 원본이 그대로 이어져요 ('+ftN+'쪽).</div></div>');
   return out;
 }
 /* ---------- PDF 만들기 & 보내기 ---------- */
@@ -524,12 +627,20 @@ pdfBtn.addEventListener("click",async()=>{
   if(!ci.G) return goTo("f_grade","맨 위의 학년을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.");
   if(!ci.name) return goTo("f_cls","맨 위의 반을 먼저 써 주세요.");
   if(!val("name").trim()) return goTo("f_name","맨 위의 이름을 먼저 써 주세요.");
-  if(!cur()) return goTo("f_school","희망 고등학교를 먼저 골라 주세요.");
+  if(!cur()) return goTo(val("school")===OWNKEY?"ownAnalyze":"f_school",val("school")===OWNKEY?"파일을 올리고 '이 내용으로 보고서 만들기'까지 눌러 주세요.":"희망 고등학교를 먼저 골라 주세요.");
   if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
   pdfBtn.disabled=true;
   try{
+    statusEl.textContent="학교 원본 자료를 불러오는 중…";
+    let evB=null, ftB=null, docOk=true;
+    try{ evB=await getDocBytes(cur(),"ev"); }catch(e){ docOk=false; }
+    try{ ftB=await getDocBytes(cur(),"feat"); }catch(e){ docOk=false; }
+    let evDoc=null, ftDoc=null;
+    try{ if(evB) evDoc=await PDFLib.PDFDocument.load(evB,{ignoreEncryption:true}); }catch(e){ docOk=false; }
+    try{ if(ftB) ftDoc=await PDFLib.PDFDocument.load(ftB,{ignoreEncryption:true}); }catch(e){ docOk=false; }
+    const evN=evDoc?evDoc.getPageCount():0, ftN=ftDoc?ftDoc.getPageCount():0;
     const stage=document.getElementById("pdfStage");
-    stage.innerHTML=buildPdfPages().join("");
+    stage.innerHTML=buildPdfPages(evN,ftN).join("");
     if(document.fonts&&document.fonts.ready) await document.fonts.ready;
     await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
     const {jsPDF}=window.jspdf; let pdf=null; const shots=[];
@@ -544,22 +655,21 @@ pdfBtn.addEventListener("click",async()=>{
     }
     stage.innerHTML="";
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
-    let blob=pdf.output("blob"), docOk=false;
+    let blob=pdf.output("blob");
     try{
-      statusEl.textContent="학교 원본 자료("+(cur().pages+cur().fpages)+"쪽)를 붙이는 중…";
-      if(!window.PDFLib) throw new Error("nolib");
-      const get=async u=>{const r=await fetch(u); if(!r.ok) throw new Error("fetch"); return PDFLib.PDFDocument.load(await r.arrayBuffer(),{ignoreEncryption:true});};
-      const ev=await get(cur().doc), ft=await get(cur().fdoc);
+      statusEl.textContent="원본("+(evN+ftN)+"쪽)을 붙이고 쪽 번호를 넣는 중…";
       const mine=await PDFLib.PDFDocument.load(await blob.arrayBuffer());
       const outDoc=await PDFLib.PDFDocument.create();
-      const n=mine.getPageCount();
-      const head=await outDoc.copyPages(mine,[...Array(n).keys()]);
-      head.slice(0,n-1).forEach(p=>outDoc.addPage(p));
-      (await outDoc.copyPages(ev,ev.getPageIndices())).forEach(p=>outDoc.addPage(p));
-      outDoc.addPage(head[n-1]);
-      (await outDoc.copyPages(ft,ft.getPageIndices())).forEach(p=>outDoc.addPage(p));
-      blob=new Blob([await outDoc.save()],{type:"application/pdf"}); docOk=true;
-    }catch(e){}
+      const head=await outDoc.copyPages(mine,mine.getPageIndices()); let k=0;
+      for(let i=0;i<5;i++) outDoc.addPage(head[k++]);
+      if(evN){ outDoc.addPage(head[k++]); (await outDoc.copyPages(evDoc,evDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
+      if(ftN){ outDoc.addPage(head[k++]); (await outDoc.copyPages(ftDoc,ftDoc.getPageIndices())).forEach(p=>outDoc.addPage(p)); }
+      const font=await outDoc.embedFont(PDFLib.StandardFonts.Helvetica), N=outDoc.getPageCount();
+      outDoc.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
+        pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
+        pg.drawText(t,{x:sz.width/2-w/2,y:6.5,size:9,font,color:PDFLib.rgb(0.35,0.35,0.35)}); });
+      blob=new Blob([await outDoc.save()],{type:"application/pdf"});
+    }catch(e){ docOk=false; }
     lastPdf={blob,name:"고등학교조사보고서_"+nm+".pdf",shots,docOk};
     pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     await submitToTeacher();
@@ -643,6 +753,8 @@ if(location.hash.indexOf("#demo")===0){
   setTimeout(()=>{statusEl.textContent="예시 내용으로 채웠어요. 노란 버튼을 누르면 제출 테스트가 돼요.";},0);
 }
 renderForm();
+idbGet("own").then(o=>{ if(o&&o.name){ OWN=o; if(val("school")===OWNKEY) renderForm(); } }).catch(()=>{});
+loadRemote();
 if(!DEMO) idbGet("photos").then(ph=>{ if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); } }).catch(()=>{});
 if(!DEMO&&Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
 })();
