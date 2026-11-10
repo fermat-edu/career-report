@@ -263,11 +263,17 @@ async function withOriginals(u8,blob){
     const mt=String(mine.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(!mt) return blob; // 예전 제출(원본이 이미 들어 있음)
     const m=JSON.parse(decodeURIComponent(mt[1]));
     const out=await PDFLib.PDFDocument.create(); out.setTitle("고등학교 조사 보고서 (원본 포함)");
-    (await out.copyPages(mine,mine.getPageIndices())).forEach(p=>out.addPage(p));
-    let added=0;
-    for(const w of ["ev","ft"]){ try{ const b=await origBytes(m,w); if(!b) continue; const d=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true});
-      (await out.copyPages(d,d.getPageIndices())).forEach(p=>out.addPage(p)); added+=d.getPageCount(); }catch(e){} }
-    if(!added) return blob;
+    const docs={};
+    for(const w of ["ev","ft"]){ try{ const b=await origBytes(m,w); if(b) docs[w]=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){} }
+    if(!docs.ev&&!docs.ft) return blob;
+    const heads=await out.copyPages(mine,mine.getPageIndices());
+    const evP=docs.ev?await out.copyPages(docs.ev,docs.ev.getPageIndices()):[], ftP=docs.ft?await out.copyPages(docs.ft,docs.ft.getPageIndices()):[];
+    if(m.plan){ // 과목 첫 쪽 뒤에 그 과목 원본을 끼워 넣기
+      String(m.plan).split(",").forEach(t=>{
+        if(/^\d+$/.test(t)){ if(heads[+t]) out.addPage(heads[+t]); return; }
+        const g=t.match(/^([ef])(\d+)-(\d+)$/); if(!g) return; const src=g[1]==="e"?evP:ftP;
+        for(let i=+g[2];i<=+g[3];i++) if(src[i-1]) out.addPage(src[i-1]); });
+    }else{ heads.forEach(p=>out.addPage(p)); evP.forEach(p=>out.addPage(p)); ftP.forEach(p=>out.addPage(p)); }
     const font=await out.embedFont(PDFLib.StandardFonts.Helvetica), N=out.getPageCount();
     out.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
       pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
