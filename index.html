@@ -28,6 +28,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .intro{display:flex;flex-direction:column;gap:6px}
 .intro h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,38px);margin:0;letter-spacing:.01em;text-wrap:balance}
 .intro p{margin:0;color:var(--muted)}
+.typesw{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}
+.typesw a{font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted);border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px}
+.typesw a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.typesw a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .steps{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding:0;margin:4px 0 0;list-style:none}
 .steps li b{color:var(--accent)}
 
@@ -154,6 +158,10 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 
 <div class="wrap" id="app">
   <header class="intro">
+    <nav class="typesw" aria-label="보고서 종류">
+      <a href="./" aria-current="page">진로탐구 보고서</a>
+      <a href="./school.html">고등학교 조사 보고서</a>
+    </nav>
     <h1>페르마 진로탐구 보고서</h1>
     <p>빈칸을 채우고, 찾아본 화면은 캡처해서 사진으로 넣으세요. 다 쓰면 아래 노란 버튼을 누르세요. PDF가 만들어지고 선생님께 자동으로 제출돼요.</p>
     <ul class="steps">

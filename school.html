@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>페르마 고등학교 조사 보고서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: worksheet pages stacked like a printed booklet; label column + writing column; sticky bottom bar for PDF */
+:root{
+  --bg:#eef3f3; --paper:#ffffff; --ink:#1f2a2c; --muted:#5f6d70; --line:#c9d3d4; --field:#f7fafa;
+  --teal:#3e9ca7; --coral:#f2827f; --green:#3fa88f; --yellow:#e9b93a; --forest:#1f5c2b; --brand:#e32626;
+  --accent:#2f8792;
+  --display:"Do Hyeon","Noto Sans KR",sans-serif;
+  --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1b; --paper:#1d2526; --ink:#e7eeee; --muted:#9fb0b2; --line:#36454a; --field:#232d2f; --accent:#6cc3cc; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a1b; --paper:#1d2526; --ink:#e7eeee; --muted:#9fb0b2; --line:#36454a; --field:#232d2f; --accent:#6cc3cc; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:820px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+.intro{display:flex;flex-direction:column;gap:6px}
+.intro h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,38px);margin:0;letter-spacing:.01em;text-wrap:balance}
+.intro p{margin:0;color:var(--muted)}
+.steps{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding:0;margin:4px 0 0;list-style:none}
+.steps li b{color:var(--accent)}
+
+.part{font-family:var(--display);font-size:22px;color:#fff;padding:12px 18px;border-radius:4px 40px 4px 40px}
+.part small{font-family:var(--body);font-size:12px;opacity:.85;margin-left:8px}
+.part.p1{background:var(--teal)} .part.p2{background:#4a4f52}
+
+.page{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.ribbon{font-family:var(--display);color:#fff;font-size:26px;padding:10px 20px 12px;border-radius:0 0 60px 0;width:fit-content;max-width:100%;display:flex;align-items:baseline;gap:10px}
+.ribbon .num{font-size:34px}
+.ribbon .tag{font-family:var(--body);font-size:12px;opacity:.9}
+.c-coral{background:var(--coral)} .c-green{background:var(--green)} .c-yellow{background:var(--yellow)} .c-dark{background:#4a4f52} .c-teal{background:var(--teal)}
+.brandline{padding:14px 20px 0;font-size:14px;color:var(--muted)} .brandline b{color:var(--brand)}
+.pbody{padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
+.subhead{font-weight:700;font-size:15px;border-top:1.5px solid var(--ink);border-bottom:1px solid var(--line);padding:8px 2px;margin-top:4px}
+.note{font-size:13px;color:var(--muted)} .note a{color:var(--accent);word-break:break-all}
+.pguide{background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.pguide b{color:var(--ink)} .pguide a{color:var(--accent);word-break:break-all}
+.guide{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
+.guide b{color:var(--accent);font-weight:700}
+.exs{font-size:12.5px;white-space:pre-wrap;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:7px 10px;line-height:1.55}
+.exs b{color:var(--ink);font-weight:700}
+details.ex{font-size:12.5px}
+details.ex summary{cursor:pointer;color:var(--accent);font-weight:700;width:fit-content}
+details.ex summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.ex div b{color:var(--ink)}
+details.ex div{margin-top:6px;white-space:pre-wrap;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;line-height:1.55}
+
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.info label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:4px}
+
+.tbl{border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.row{display:grid;grid-template-columns:150px minmax(0,1fr);border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .lab{font-weight:700;font-size:14px;padding:12px 10px;border-right:1px solid var(--line);display:flex;align-items:center}
+.row .val{padding:8px 10px;min-width:0;display:flex;flex-direction:column;gap:8px}
+
+.q{display:flex;flex-direction:column;gap:6px}
+.q .qt{font-weight:700;font-size:14.5px}
+.q .qs{font-weight:400;color:var(--muted);font-size:13px}
+
+input[type=text],textarea{width:100%;box-sizing:border-box;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+textarea{resize:vertical;min-height:70px}
+.q textarea{border-radius:16px}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.count{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.count.over{color:var(--brand);font-weight:700}
+
+.grid2{overflow-x:auto}
+.grid2 table{width:100%;border-collapse:collapse;min-width:460px}
+.grid2 th{background:var(--forest);color:#fff;font-weight:500;font-size:13px;padding:7px}
+.grid2 td{border:1px solid var(--line);padding:5px;font-size:13.5px;vertical-align:middle}
+.grid2 td.rh{font-weight:700;text-align:center;white-space:nowrap}
+
+.photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.addph{font:inherit;font-size:13px;color:var(--accent);background:transparent;border:1.5px dashed var(--accent);border-radius:8px;padding:6px 12px;cursor:pointer}
+.addph:hover{background:var(--field)}
+.addph:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.thumb{position:relative;width:96px;height:72px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--field)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
+.thumb button.mv{top:auto;bottom:3px;border-radius:6px;font-size:11px}
+.thumb button.mv.l{left:3px;right:auto} .thumb button.mv.r{right:3px}
+.thumb .ord{position:absolute;top:3px;left:3px;min-width:18px;height:18px;border-radius:9px;background:var(--forest);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px}
+.up .prev{font:inherit;font-size:13px;font-weight:700;color:var(--accent);background:transparent;border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;cursor:pointer;align-self:flex-start}
+.photo-big .addph{padding:14px 16px;width:100%}
+.up{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--field)}
+.up .upbtn{font:inherit;font-weight:700;font-size:14px;color:#fff;background:var(--forest);border:0;border-radius:10px;padding:12px 14px;cursor:pointer}
+.up .upbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.up .uphint{font-size:12.5px;color:var(--muted)}
+.pdfchip{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px}
+.pdfchip .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.pdfchip .tagpdf{font-size:11px;font-weight:700;color:#fff;background:var(--brand);border-radius:4px;padding:1px 6px}
+.pdfchip button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:3px 8px;cursor:pointer}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-in{max-width:820px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status{flex:1 1 100%;min-width:0;font-size:13px;color:var(--muted)}
+.btn{font:inherit;font-weight:700;border-radius:10px;padding:11px 18px;cursor:pointer;border:1px solid var(--line);background:var(--field);color:var(--ink)}
+.btn.primary{background:#fee500;border-color:#e6cf00;color:#191600}
+.btn:disabled{opacity:.6;cursor:wait}
+.confirm{display:flex;gap:8px;align-items:center;font-size:13px}
+
+.modal{position:fixed;inset:0;z-index:50;background:rgba(15,25,27,.55);display:flex;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mbox{background:var(--paper);color:var(--ink);border-radius:16px;padding:24px 20px 18px;width:100%;max-width:360px;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.mbox .micon{font-size:44px;line-height:1}
+.mbox h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0}
+.mbox p{margin:0;color:var(--muted);font-size:14px;white-space:pre-line}
+.mbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.mbtns .btn{flex:1 1 120px}
+.shots{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shots-head{max-width:820px;margin:0 auto 14px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;font-size:14px}
+.shots-head span{color:var(--muted)}
+.shot-list{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.shot-list figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.shot-list img{width:100%;border:1px solid var(--line);-webkit-touch-callout:default;user-select:auto}
+.shot-list figcaption{font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:560px){
+  .row{grid-template-columns:1fr}
+  .row .lab{border-right:0;padding:10px 10px 0}
+  .info{grid-template-columns:1fr 1fr} .info label:last-child{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- PDF render (always light, fixed width) ---------- */
+#pdfStage{position:fixed;left:-12000px;top:0;width:794px;pointer-events:none}
+.pp{width:794px;box-sizing:border-box;background:#fff;color:#1f2a2c;font-family:var(--body);font-size:14px;line-height:1.6;padding-bottom:36px}
+.pp .ribbon{color:#fff} .pp .pbody{padding:22px 48px} .pp .brandline{color:#5f6d70;padding:28px 48px 0}
+.pp .row .lab,.pp .row{border-color:#c9d3d4} .pp .tbl,.pp .subhead{border-top-color:#1f2a2c;border-bottom-color:#1f2a2c}
+.pp .subhead{border-bottom-color:#c9d3d4}
+.pp .row{grid-template-columns:150px 1fr}
+.pp .txt{white-space:pre-wrap;word-break:break-word;min-height:22px}
+.pp .box{border:1px solid #9aa6a8;border-radius:14px;padding:10px 14px;min-height:56px;white-space:pre-wrap;word-break:break-word}
+.pp .pimgs{display:flex;flex-direction:column;gap:8px}
+.pp .pimgs img{max-width:100%;max-height:900px;object-fit:contain;align-self:flex-start;border:1px solid #c9d3d4}
+.pp .grid2 table{min-width:0} .pp .grid2 td{border-color:#9aa6a8}
+.pp .infoline{display:flex;gap:40px;font-weight:700;font-size:14px}
+.pp .infoline span{font-weight:400}
+.pp .note{color:#5f6d70} .pp .note a{color:#2f5fcf}
+.cover{height:1123px;display:flex;flex-direction:column;justify-content:center;gap:40px}
+.cover .band{background:#58a8b4;color:#fff;font-family:var(--display);font-size:52px;padding:30px 70px;border-radius:0 0 0 0;display:flex;justify-content:space-between;align-items:center}
+.cover .who{text-align:center;font-size:20px;font-weight:700;color:#1f2a2c}
+
+/* ---------- 보고서 종류 선택 + 고등학교 조사 전용 ---------- */
+.typesw{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}
+.typesw a{font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted);border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px}
+.typesw a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.typesw a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;box-sizing:border-box}
+select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.schoolpick{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--field);border:1px solid var(--line);color:var(--ink)}
+.chip.t{background:var(--teal);border-color:var(--teal);color:#fff}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fact{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
+.fact span{font-size:12px;color:var(--muted)} .fact b{font-size:15px}
+.feat{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.empty{padding:22px 14px;text-align:center;color:var(--muted);background:var(--field);border:1px dashed var(--line);border-radius:10px}
+.ev{display:flex;flex-direction:column;gap:10px}
+.evc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;break-inside:avoid}
+.evh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.evh b{font-size:15px} .evh span{font-size:13px;color:var(--muted)}
+.evbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--field)}
+.evbar i{display:block;height:100%}
+.evbar .x1{background:#4a7fc1} .evbar .x2{background:#2f5f9e} .evbar .xp{background:var(--coral)}
+.evl{margin:0;padding-left:18px;font-size:13.5px}
+.evl em{font-style:normal;font-weight:700;color:var(--coral)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.clubtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.clubtools input{flex:1 1 200px}
+.pickcount{font-weight:700;font-size:14px;color:var(--accent);white-space:nowrap}
+.clist{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;padding:2px}
+.club{border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.club[data-on="1"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--field)}
+.club summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.club summary::-webkit-details-marker{display:none}
+.club summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:12px}
+.club .cn{flex:1;min-width:0;font-weight:700;font-size:14.5px}
+.club .cn small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+.club .arrow{color:var(--muted);font-size:12px}
+.club[open] .arrow{transform:rotate(180deg)}
+.club .cd{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.club .cd p{margin:0}
+.club .cd .act{color:var(--muted);font-size:13px}
+.pickbtn{font:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:6px 12px;cursor:pointer;border:1.5px solid var(--accent);background:transparent;color:var(--accent);white-space:nowrap}
+.club[data-on="1"] .pickbtn{background:var(--accent);color:#fff}
+.chosen{display:flex;flex-direction:column;gap:10px}
+.chosen .cbox{border:1.5px solid var(--accent);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.chosen .ch{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.chosen .ch b{font-size:15px}
+.chosen .cdsc{font-size:13px;color:var(--muted)}
+.chosen .rm{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:3px 8px;cursor:pointer}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;cursor:pointer;background:var(--paper)}
+.checks label:has(input:checked){border-color:var(--accent);background:var(--field);font-weight:700}
+.checks input{accent-color:var(--accent)}
+@media (max-width:560px){ .facts{grid-template-columns:1fr 1fr} .clist{max-height:480px} }
+/* PDF */
+.pp .facts .fact{background:#f4f7f7;border-color:#c9d3d4} .pp .fact span{color:#5f6d70}
+.pp .chip{background:#f4f7f7;border-color:#c9d3d4;color:#1f2a2c} .pp .chip.t{background:#3e9ca7;color:#fff;border-color:#3e9ca7}
+.pp .evc{border-color:#c9d3d4;padding:8px 12px} .pp .evh span{color:#5f6d70}
+.pp .evbar{background:#eef3f3}
+.pp .cbox{border:1.5px solid #3e9ca7;border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.pp .cbox .cdsc{color:#5f6d70;font-size:13px}
+.pp .evtbl{width:100%;border-collapse:collapse;font-size:13px}
+.pp .evtbl th{background:#1f5c2b;color:#fff;font-weight:500;padding:6px;font-size:12.5px}
+.pp .evtbl td{border:1px solid #9aa6a8;padding:6px 8px;vertical-align:top}
+.pp .evtbl td.s{font-weight:700;white-space:nowrap}
+.pp .evtbl td.n{text-align:center;white-space:nowrap}
+.pp .src{font-size:11.5px;color:#5f6d70}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="intro">
+    <nav class="typesw" aria-label="보고서 종류">
+      <a href="./">진로탐구 보고서</a>
+      <a href="./school.html" aria-current="page">고등학교 조사 보고서</a>
+    </nav>
+    <h1>페르마 고등학교 조사 보고서</h1>
+    <p>가고 싶은 고등학교를 고르면 그 학교의 <b>꼭 알아야 할 정보</b>가 자동으로 나와요. 정보를 읽고, 동아리 3개를 고르고, 빈칸을 채운 뒤 아래 노란 버튼을 누르세요. PDF가 만들어지고 선생님께 자동으로 제출돼요.</p>
+    <ul class="steps">
+      <li><b>①</b> 학년·반·이름 쓰고 희망 학교 고르기</li>
+      <li><b>②</b> 평가 방법·학교 특색 읽고 답하기</li>
+      <li><b>③</b> 동아리 3개 고르기</li>
+      <li><b>④</b> PDF 만들고 제출</li>
+    </ul>
+    <p class="note">쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
+  </header>
+  <div id="form"></div>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="status" id="status">작성 중 · 자동 저장됨</div>
+    <button class="btn" id="midSaveBtn" type="button">중간 저장</button>
+    <span id="resetArea"><button class="btn" id="resetBtn" type="button">모두 지우기</button></span>
+    <button class="btn" id="submitBtn" type="button" hidden>다시 제출</button>
+    <button class="btn" id="saveBtn" type="button" hidden>파일로 저장</button>
+    <button class="btn primary" id="pdfBtn" type="button">PDF 만들고 제출</button>
+  </div>
+</div>
+
+<div id="pdfStage" aria-hidden="true"></div>
+
+<div id="doneModal" class="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="doneTitle">
+  <div class="mbox">
+    <div class="micon" id="doneIcon">✅</div>
+    <h2 id="doneTitle">제출 완료!</h2>
+    <p id="doneText"></p>
+    <div class="mbtns">
+      <button class="btn" id="doneOk" type="button">확인</button>
+      <button class="btn primary" id="doneShare" type="button">카톡으로도 보내기</button>
+    </div>
+  </div>
+</div>
+
+<div id="shots" class="shots" hidden role="dialog" aria-label="완성된 보고서">
+  <div class="shots-head">
+    <div><b>보고서 완성!</b><br><span>각 쪽 사진을 길게 눌러 이미지 저장한 뒤, 카카오톡 채팅방에서 사진으로 보내세요.</span></div>
+    <button class="btn" id="shotClose" type="button">닫기</button>
+  </div>
+  <div class="shot-list" id="shotList"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="school-data.js?v=1"></script>
+<script>
+(function(){
+const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
+const FORM_NAME="고등학교조사보고서";
+const SCH=window.SCHOOLS||{};
+const NAMES=Object.keys(SCH);
+const MAXC=3;
+const CORE=["공통국어1","공통수학1","공통영어1","한국사1","통합사회1","통합과학1"];
+const AFTER=["국어","수학","영어","통합사회","통합과학","한국사","과학탐구·실험","논술·글쓰기","AI·코딩","제2외국어","예체능","자격증·검정"];
+
+/* ---------- 상태 ---------- */
+const KEY="fermat-school-report-v1";
+let S={v:{},ph:{}};
+try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&o.v) S={v:o.v||{},ph:{}};}}catch(e){}
+let saveT=null, dirty=false, phDirty=false, DEMO=false;
+const statusEl=document.getElementById("status");
+const idb=(()=>{let p=null;return ()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open("fermat-school-report",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}));})();
+function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);}));}
+function idbGet(k){return idb().then(db=>new Promise((res,rej)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
+function saveNow(){ if(DEMO) return;
+  clearTimeout(saveT); if(!dirty) return; dirty=false;
+  let textOk=true; try{localStorage.setItem(KEY,JSON.stringify({v:S.v}));}catch(e){textOk=false;}
+  if(phDirty){ phDirty=false; idbPut("photos",S.ph).then(()=>{statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"사진만 저장됨 · 글 자동 저장이 안 되는 환경이에요";})
+     .catch(()=>{statusEl.textContent="글은 저장됨 · 사진은 저장이 안 돼요 (창을 닫지 마세요)";}); }
+  else statusEl.textContent=textOk?"작성 중 · 자동 저장됨":"자동 저장이 안 되는 환경이에요. 창을 닫지 말고 끝까지 작성하세요.";
+}
+function save(photo){if(DEMO)return; dirty=true; if(photo){phDirty=true; return saveNow();} clearTimeout(saveT); saveT=setTimeout(saveNow,300);}
+addEventListener("pagehide",saveNow);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveNow();});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const val=id=>S.v[id]||"";
+const arr=id=>{try{const a=JSON.parse(S.v[id]||"[]"); return Array.isArray(a)?a:[];}catch(e){return [];}};
+const setArr=(id,a)=>{S.v[id]=JSON.stringify(a);};
+const normG=n=>{n=+n; return n>=1&&n<=3?n+6:n;};
+function clsInfo(){
+  const raw=val("cls").replace(/\s+/g,"").replace(/반$/,"");
+  const m=raw.match(/^(\d+)(?:학년)?(.*)$/);
+  const name=(m?m[2]:raw).replace(/[a-z]/g,c=>c.toUpperCase());
+  const gd=(m&&m[1])||(val("grade").match(/\d+/)||[""])[0];
+  const G=gd?normG(gd):"";
+  return {G,name,full:name?(G||"")+name+"반":""};
+}
+const whoText=()=>{const c=clsInfo(); return [c.full||(c.G?c.G+"학년":""),val("name").trim()].filter(Boolean).join(" ");};
+const cur=()=>SCH[val("school")]||null;
+const fmt=n=>(Math.round(n*10)/10).toString();
+
+/* ---------- 작성 안내 ---------- */
+const GUIDE={
+ why:["· 이 학교를 고른 이유를 2~3가지 써요.\n· 집과의 거리, 학교 특색, 동아리, 진로와의 관계처럼 구체적으로 써요.","집에서 버스로 15분이라 통학이 편하다. 과학중점학교라 실험 활동이 많아 내 진로(연구원)와 잘 맞는다."],
+ commute:["· 집에서 학교까지 가는 방법과 걸리는 시간을 써요. 지도 앱으로 확인해 보세요.","버스 ○○번 → 도보 5분, 약 20분"],
+ ev_focus:["· 위 표를 보고 수행평가 비중이 가장 큰 과목과 그 수행평가를 찾아 써요.\n· 그 수행평가를 잘 받으려면 중학교 때부터 무엇을 준비하면 좋을지 써요.","공통영어1은 수행평가가 40%이고 그중 에세이 쓰기가 20%이다. 지금부터 일주일에 한 번 영어 일기를 써서 글쓰기 연습을 하겠다."],
+ ev_missing:["· 이 과목들은 받은 자료에 평가계획이 없어요. 학교알리미(schoolinfo.go.kr) 또는 학교 홈페이지 → 교수학습 및 평가계획에서 찾아 적어요.\n· 지필(중간·기말) 비율과 수행평가 이름·비율을 쓰면 돼요.",""],
+ feat_want:["· 위 특색 프로그램 중 참여하고 싶은 것을 1~2개 고르고, 이유와 그 활동으로 얻고 싶은 것을 써요.",""],
+ feat_more:["· 학교 홈페이지나 학교알리미에서 더 알게 된 내용이 있으면 적거나 캡처해서 넣어요. (선택)",""],
+ club_why:["· 이 동아리를 고른 이유와, 들어가면 해 보고 싶은 활동을 써요.\n· 내 진로나 관심과 연결해서 쓰면 좋아요.",""],
+ ab_why:["· 고른 과목을 방과후로 듣고 싶은 이유를 써요. (예: 내신 대비, 부족한 과목 보충, 진로 관련 심화)",""],
+ goal:["· 고1 1학기에 이루고 싶은 목표를 공부, 학교생활, 진로로 나눠 써요.\n· 공백 빼고 300자 안으로 써요.",""]
+};
+function guideHtml(id){ const g=GUIDE[id]; if(!g) return "";
+  return '<div class="guide"><b>✏️ 쓰는 방법</b>\n'+esc(g[0])+'</div>'+(g[1]?'<div class="exs"><b>예시</b>\n'+esc(g[1])+'</div>':''); }
+function ta(id,rows,ph,limit){ return '<textarea id="f_'+id+'" data-id="'+id+'" rows="'+rows+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(limit?' data-limit="'+limit+'"':'')+'>'+esc(val(id))+'</textarea>'+(limit?'<div class="count" id="cnt_'+id+'"></div>':''); }
+function photoBox(id){
+  const list=S.ph[id]||[];
+  return '<div class="photos photo-big" data-ph="'+id+'">'+
+    list.map((src,i)=>'<div class="thumb"><img src="'+src+'" alt="첨부한 캡처 '+(i+1)+'"><button type="button" data-del="'+id+'" data-i="'+i+'" aria-label="사진 삭제">✕</button></div>').join("")+
+    '<button type="button" class="addph" data-add="'+id+'">+ 캡처 사진 넣기</button></div>';
+}
+function section(num,title,color,inner,tag){
+  return '<section class="page"><div class="brandline"><b>Fermat</b> education</div><div class="ribbon '+color+'"><span class="num">'+num+'</span>'+title+(tag?'<span class="tag">'+tag+'</span>':'')+'</div><div class="pbody">'+inner+'</div></section>';
+}
+
+/* ---------- 학교 정보 조각 (입력 화면·PDF 같이 사용) ---------- */
+function factsHtml(s){
+  return '<div class="facts"><div class="fact"><span>학교 구분</span><b>'+esc(s.type)+'</b></div>'+
+    '<div class="fact"><span>1학년 학급 수(2026)</span><b>'+(s.cls?s.cls+'학급':'학교 확인')+'</b></div>'+
+    '<div class="fact"><span>동아리(1학년 참여)</span><b>'+s.clubs.length+'개</b></div></div>'+
+    (s.tags.length?'<div class="chips">'+s.tags.map(t=>'<span class="chip t">'+esc(t)+'</span>').join("")+'</div>':'');
+}
+function evSum(e){ const pf=e.p.reduce((a,x)=>a+x[1],0); return {ex:e.mid+e.fin,pf}; }
+function evCards(s){
+  if(!s.ev.length) return '<div class="empty">평가 자료가 없어요.</div>';
+  return '<div class="legend"><span><i style="background:#4a7fc1"></i>중간(1차)시험</span><span><i style="background:#2f5f9e"></i>기말(2차)시험</span><span><i style="background:var(--coral)"></i>수행평가</span></div><div class="ev">'+
+   s.ev.map(e=>{const t=evSum(e);
+    return '<div class="evc"><div class="evh"><b>'+esc(e.s)+'</b><span>'+(t.ex?'지필 '+fmt(t.ex)+'% (중간 '+fmt(e.mid)+' · 기말 '+fmt(e.fin)+')':'지필시험 없음')+' · 수행 '+fmt(t.pf)+'%</span></div>'+
+     '<div class="evbar" aria-hidden="true"><i class="x1" style="width:'+e.mid+'%"></i><i class="x2" style="width:'+e.fin+'%"></i><i class="xp" style="width:'+t.pf+'%"></i></div>'+
+     '<ul class="evl">'+e.p.map(p=>'<li>'+esc(p[0])+' <em>'+fmt(p[1])+'%</em></li>').join("")+'</ul></div>';}).join("")+'</div>';
+}
+function missingSubj(s){ const have=s.ev.map(e=>e.s); return CORE.filter(c=>!have.includes(c)); }
+
+/* ---------- 입력 화면 ---------- */
+function renderForm(){
+  const s=cur(); let h="";
+  // 01 기본 정보
+  let p1='<div class="info">'+[["grade","학년","예: 9 (또는 3)",""],["cls","반","예: 탈레스",' autocomplete="off"'],["name","이름","",""]].map(([id,l,ph,ex])=>'<label>'+l+'<input type="text" id="f_'+id+'" data-id="'+id+'" value="'+esc(val(id))+'" placeholder="'+ph+'"'+ex+'></label>').join("")+'</div>'+
+   '<label class="schoolpick" for="f_school">희망 고등학교<select id="f_school" data-id="school"><option value="">— 학교를 골라 주세요 —</option>'+
+   NAMES.map(n=>'<option value="'+esc(n)+'"'+(n===val("school")?' selected':'')+'>'+esc(n)+'</option>').join("")+'</select></label>';
+  if(s){
+    p1+='<div class="subhead">학교 기본 정보</div>'+factsHtml(s)+
+      '<div class="tbl"><div class="row"><label class="lab" for="f_why">이 학교를 고른 이유</label><div class="val">'+guideHtml("why")+ta("why",4)+'</div></div>'+
+      '<div class="row"><label class="lab" for="f_commute">통학 방법·시간</label><div class="val">'+guideHtml("commute")+'<input type="text" id="f_commute" data-id="commute" value="'+esc(val("commute"))+'" placeholder="예: 버스 ○○번, 약 20분"></div></div></div>';
+  } else p1+='<div class="empty">학교를 고르면 그 학교의 평가 방법, 특색 프로그램, 동아리 목록이 아래에 나와요.</div>';
+  h+=section("01.","희망 학교","c-coral",p1);
+  if(s){
+    // 02 평가
+    const miss=missingSubj(s);
+    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 수행평가는 수업 시간에 하는 글쓰기·발표·실험·보고서예요. (2026학년도 1학년 1학기 평가계획 기준 · 내년에 조금 바뀔 수 있어요)</div>'+evCards(s);
+    if(miss.length){ p2+='<div class="subhead">직접 찾아 적기: '+esc(miss.join(", "))+'</div>'+guideHtml("ev_missing")+
+      miss.map(m=>'<div class="q"><label class="qt" for="f_evm_'+m+'">'+esc(m)+'</label>'+ta("evm_"+m,2,"지필 ○% (중간 ○ · 기말 ○), 수행평가: ○○ ○%")+'</div>').join(""); }
+    p2+='<div class="q"><label class="qt" for="f_ev_focus">수행평가 비중이 큰 과목과 준비할 점</label>'+guideHtml("ev_focus")+ta("ev_focus",4)+'</div>';
+    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,"자동으로 나와요");
+    // 03 특색
+    let p3='<ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>'+
+      '<div class="q"><label class="qt" for="f_feat_want">참여하고 싶은 특색 프로그램과 이유</label>'+guideHtml("feat_want")+ta("feat_want",4)+'</div>'+
+      '<div class="q"><span class="qt">더 알게 된 내용 (선택)</span>'+guideHtml("feat_more")+ta("feat_more",3,"학교 홈페이지·학교알리미에서 찾은 내용")+photoBox("feat_more")+'</div>';
+    h+=section("03.","학교 특색 프로그램","c-yellow",p3);
+    // 04 동아리
+    const picked=arr("clubs");
+    let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 설명이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요. 아래에 고른 동아리와 이유를 쓰는 칸이 생겨요.'+
+      (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 동아리 설명 자료가 없어 이름을 보고 간단히 적었어요. 정확한 활동은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
+      '<div class="clubtools"><input type="text" id="clubq" placeholder="동아리 찾기 (예: 과학, 영어, 코딩)" aria-label="동아리 찾기" autocomplete="off"><span class="pickcount" id="pickcount">'+picked.length+' / '+MAXC+' 선택</span></div>'+
+      '<div class="clist" id="clist">'+s.clubs.map((c,i)=>clubItem(c,i,picked.includes(c.n))).join("")+'</div>'+
+      '<div class="subhead">내가 고른 동아리</div><div class="chosen" id="chosen">'+chosenHtml(s)+'</div>';
+    h+=section("04.","동아리 고르기","c-teal",p4,"3개 선택");
+    // 05 방과후·목표
+    const ab=arr("ab");
+    let p5='<div class="pguide"><b>방과후학교</b>는 학기마다 수요 조사를 해서 강좌를 열어요. 듣고 싶은 과목을 골라 두면 신청할 때 도움이 돼요.</div>'+
+      '<div class="q"><span class="qt">듣고 싶은 방과후 과목 (여러 개 가능)</span><div class="checks">'+AFTER.map(a=>'<label><input type="checkbox" data-ab="'+esc(a)+'"'+(ab.includes(a)?' checked':'')+'>'+esc(a)+'</label>').join("")+'</div></div>'+
+      '<div class="q"><label class="qt" for="f_ab_why">고른 이유</label>'+guideHtml("ab_why")+ta("ab_why",3)+'</div>'+
+      '<div class="q"><label class="qt" for="f_goal">고등학교 1학년 1학기 나의 목표 (300자)</label>'+guideHtml("goal")+ta("goal",6,"",300)+'</div>';
+    h+=section("05.","방과후 · 고1 목표","c-dark",p5);
+  }
+  document.getElementById("form").innerHTML=h;
+  document.querySelectorAll("[data-limit]").forEach(updCount);
+}
+function clubItem(c,i,on){
+  const sub=c.f?'<small>'+esc(c.f)+'</small>':'';
+  return '<details class="club" data-i="'+i+'" data-on="'+(on?1:0)+'" data-name="'+esc((c.n+" "+(c.d||"")+" "+(c.f||"")+" "+(c.a||[]).join(" ")).toLowerCase())+'"><summary><span class="cn">'+esc(c.n)+sub+'</span><span class="arrow" aria-hidden="true">▼</span>'+
+    '<button type="button" class="pickbtn" data-pick="'+i+'" aria-pressed="'+on+'">'+(on?'선택됨 ✓':'선택')+'</button></summary>'+
+    '<div class="cd"><p>'+esc(c.d||"설명 자료 없음")+'</p>'+((c.a&&c.a.length)?'<p class="act">주요 활동: '+esc(c.a.join(" · "))+'</p>':'')+'</div></details>';
+}
+function chosenHtml(s){
+  const picked=arr("clubs");
+  if(!picked.length) return '<div class="empty">아직 고른 동아리가 없어요. 위 목록에서 3개를 골라 주세요.</div>';
+  return picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""}; const id="club_why_"+k;
+    return '<div class="cbox"><div class="ch"><b>'+(k+1)+'. '+esc(c.n)+'</b><button type="button" class="rm" data-unpick="'+esc(n)+'">빼기</button></div><div class="cdsc">'+esc(c.d||"")+'</div>'+
+      '<label class="qt" for="f_'+id+'" style="font-size:13.5px">고른 이유 · 해 보고 싶은 활동</label>'+(k===0?guideHtml("club_why"):'')+ta(id,3)+'</div>';}).join("")+
+    (picked.length<MAXC?'<p class="note">'+(MAXC-picked.length)+'개 더 골라 주세요.</p>':'');
+}
+function updCount(t){const c=document.getElementById("cnt_"+t.dataset.id); if(!c)return; const n=t.value.replace(/\s/g,"").length, L=+t.dataset.limit; c.textContent="공백 제외 "+n+" / "+L+"자"; c.classList.toggle("over",n>L);}
+
+const form=document.getElementById("form");
+form.addEventListener("input",e=>{const t=e.target;
+  if(t.id==="clubq"){ filterClubs(t.value); return; }
+  if(t.dataset.ab!==undefined) return;
+  if(!t.dataset.id)return; S.v[t.dataset.id]=t.value; if(t.dataset.limit)updCount(t); save(); resetSend();
+});
+form.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset.ab!==undefined){ const a=arr("ab"), k=t.dataset.ab; const i=a.indexOf(k); if(t.checked&&i<0)a.push(k); if(!t.checked&&i>=0)a.splice(i,1); setArr("ab",AFTER.filter(x=>a.includes(x))); save(); resetSend(); return; }
+  if(t.id==="f_school"){ S.v.school=t.value; save(); resetSend(); renderForm(); const f=document.getElementById("f_school"); if(f) f.focus(); }});
+function filterClubs(q){ q=q.trim().toLowerCase(); document.querySelectorAll("#clist .club").forEach(d=>{d.hidden=!!q&&!d.dataset.name.includes(q);}); }
+function togglePick(name){
+  const a=arr("clubs"), i=a.indexOf(name);
+  if(i>=0){ // 빼면 이유 칸도 같이 당겨오기
+    const why=[0,1,2].map(k=>val("club_why_"+k)); why.splice(i,1); why.push(""); why.forEach((w,k)=>{S.v["club_why_"+k]=w;}); a.splice(i,1);
+  } else { if(a.length>=MAXC){ statusEl.textContent="동아리는 3개까지 고를 수 있어요. 먼저 하나를 빼 주세요."; return; } a.push(name); }
+  setArr("clubs",a); save(); resetSend();
+  const s=cur(); document.querySelectorAll("#clist .club").forEach(d=>{const c=s.clubs[+d.dataset.i]; const on=a.includes(c.n); d.dataset.on=on?1:0; const b=d.querySelector(".pickbtn"); b.textContent=on?"선택됨 ✓":"선택"; b.setAttribute("aria-pressed",on);});
+  document.getElementById("chosen").innerHTML=chosenHtml(s);
+  document.getElementById("pickcount").textContent=a.length+" / "+MAXC+" 선택";
+  statusEl.textContent=a.length===MAXC?"동아리 3개를 모두 골랐어요. 고른 이유를 써 주세요.":"동아리 "+a.length+"개 골랐어요 · "+(MAXC-a.length)+"개 더 고르세요";
+}
+form.addEventListener("click",e=>{
+  const p=e.target.closest("[data-pick]"); if(p){ e.preventDefault(); const s=cur(); togglePick(s.clubs[+p.dataset.pick].n); return; }
+  const u=e.target.closest("[data-unpick]"); if(u){ togglePick(u.dataset.unpick); return; }
+});
+
+/* 사진 */
+const picker=document.createElement("input"); picker.type="file"; picker.accept="image/*"; picker.multiple=true; picker.hidden=true; document.body.appendChild(picker);
+let pickFor=null;
+form.addEventListener("click",e=>{
+  const a=e.target.closest("[data-add]"); if(a){pickFor=a.dataset.add; picker.value=""; picker.click(); return;}
+  const d=e.target.closest("[data-del]"); if(d){const id=d.dataset.del; (S.ph[id]||[]).splice(+d.dataset.i,1); refreshPh(id); save(true); resetSend();}
+});
+picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent="사진을 읽지 못했어요. 다른 사진으로 해 보세요.";} } refreshPh(id); save(true); resetSend();});
+function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id);}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader(); r.onerror=rej; r.onload=()=>{const img=new Image(); img.onerror=rej; img.onload=()=>{
+  const k=Math.min(1,1400/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",0.82));}; img.src=r.result;}; r.readAsDataURL(file);});}
+
+/* 중간 저장 */
+document.getElementById("midSaveBtn").addEventListener("click",async()=>{
+  if(DEMO){ statusEl.textContent="예시 화면이라 저장하지 않아요. 학생용 링크를 다시 열어 주세요."; return; }
+  const b=document.getElementById("midSaveBtn"); b.disabled=true;
+  clearTimeout(saveT); dirty=false; phDirty=false;
+  let ok=true;
+  try{ localStorage.setItem(KEY,JSON.stringify({v:S.v})); }catch(e){ ok=false; }
+  try{ await idbPut("photos",S.ph); }catch(e){ ok=false; }
+  const d=new Date(), t=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  statusEl.textContent=ok?"✅ 중간 저장했어요 ("+t+") · 같은 기기·같은 브라우저로 다시 열면 이어서 쓸 수 있어요":"⚠️ 저장하지 못했어요. 시크릿 창이면 일반 창으로 열어 주세요. 창을 닫지 말고 끝까지 작성하세요.";
+  b.textContent=ok?"저장됨 ✓":"중간 저장"; setTimeout(()=>{b.textContent="중간 저장"; b.disabled=false;},1500);
+});
+
+/* 모두 지우기 */
+const resetArea=document.getElementById("resetArea");
+resetArea.addEventListener("click",e=>{
+  if(e.target.id==="resetBtn"){resetArea.innerHTML='<span class="confirm">정말 지울까요? <button class="btn" id="rYes" type="button">지우기</button><button class="btn" id="rNo" type="button">취소</button></span>';}
+  else if(e.target.id==="rYes"){S={v:{},ph:{}}; try{localStorage.removeItem(KEY);}catch(_){} idbPut("photos",{}).catch(()=>{}); renderForm(); resetSend(); resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>'; statusEl.textContent="모두 지웠어요";}
+  else if(e.target.id==="rNo"){resetArea.innerHTML='<button class="btn" id="resetBtn" type="button">모두 지우기</button>';}
+});
+
+/* ---------- PDF용 화면 ---------- */
+const T=id=>esc(val(id));
+const box=(id,min)=>'<div class="box" style="min-height:'+(min||56)+'px">'+T(id)+'</div>';
+function imgs(id){const l=S.ph[id]||[]; return l.length?'<div class="pimgs">'+l.map(s=>'<img src="'+s+'">').join("")+'</div>':"";}
+function ppPage(num,title,color,inner,info){
+  return '<div class="pp"><div class="brandline"><b style="color:#e32626">Fermat</b> education</div><div class="ribbon '+color+'"><span class="num">'+num+'</span>'+title+'</div><div class="pbody">'+
+    (info?'<div class="infoline"><div>학년 : <span>'+esc(clsInfo().G)+'</span></div><div>반 : <span>'+esc(clsInfo().full)+'</span></div><div>이름 : <span>'+T("name")+'</span></div></div>':'')+inner+'</div></div>';
+}
+function evTable(s){
+  return '<table class="evtbl"><thead><tr><th>과목</th><th>중간</th><th>기말</th><th>수행</th><th>수행평가 내용 (비율)</th></tr></thead><tbody>'+
+    s.ev.map(e=>{const t=evSum(e); return '<tr><td class="s">'+esc(e.s)+'</td><td class="n">'+(e.mid?fmt(e.mid)+'%':'-')+'</td><td class="n">'+(e.fin?fmt(e.fin)+'%':'-')+'</td><td class="n">'+fmt(t.pf)+'%</td><td>'+e.p.map(p=>esc(p[0])+' '+fmt(p[1])+'%').join('<br>')+'</td></tr>';}).join("")+'</tbody></table>';
+}
+function buildPdfPages(){
+  const s=cur(), who=whoText(), out=[];
+  out.push('<div class="pp cover"><div class="band" style="background:#3e9ca7"><span>고등학교 조사 보고서</span><span style="font-size:40px">🏫</span></div><div class="who" style="font-size:30px;font-family:var(--display);font-weight:400">'+esc(val("school"))+'</div><div class="who">'+esc(who)+'</div></div>');
+  out.push(ppPage("01.","희망 학교","c-coral",
+    '<div class="subhead">'+esc(val("school"))+'</div>'+factsHtml(s)+
+    '<div class="tbl"><div class="row"><div class="lab">이 학교를 고른 이유</div><div class="val"><div class="txt" style="min-height:80px">'+T("why")+'</div></div></div>'+
+    '<div class="row"><div class="lab">통학 방법·시간</div><div class="val"><div class="txt">'+T("commute")+'</div></div></div></div>'+
+    '<div class="subhead">학교 특색 프로그램</div><ul class="feat">'+s.feat.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul>'+
+    '<div class="q"><div class="qt">참여하고 싶은 특색 프로그램과 이유</div>'+box("feat_want",70)+'</div>'+
+    ((val("feat_more").trim()||(S.ph.feat_more||[]).length)?'<div class="q"><div class="qt">더 알게 된 내용</div>'+(val("feat_more").trim()?box("feat_more"):'')+imgs("feat_more")+'</div>':''),true));
+  const miss=missingSubj(s);
+  out.push(ppPage("02.","1학년 과목별 평가 방법","c-green",
+    '<p class="src">2026학년도 1학년 1학기 교수학습 및 평가 운영 계획 기준 · 지필(중간·기말)+수행평가=100%</p>'+evTable(s)+
+    (miss.length?'<div class="subhead">직접 찾아 적은 과목</div>'+miss.map(m=>'<div class="q"><div class="qt">'+esc(m)+'</div>'+box("evm_"+m,36)+'</div>').join(""):'')+
+    '<div class="q"><div class="qt">수행평가 비중이 큰 과목과 준비할 점</div>'+box("ev_focus",80)+'</div>'));
+  const picked=arr("clubs");
+  out.push(ppPage("03.","내가 고른 동아리","c-teal",
+    (picked.length?picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
+      return '<div class="cbox"><b style="font-size:16px">'+(k+1)+'. '+esc(c.n)+(c.f?' <span class="src">('+esc(c.f)+')</span>':'')+'</b><div class="cdsc">'+esc(c.d||"")+((c.a&&c.a.length)?'<br>주요 활동: '+esc(c.a.join(" · ")):'')+'</div>'+
+        '<div class="qt" style="font-size:13.5px">고른 이유 · 해 보고 싶은 활동</div>'+box("club_why_"+k,60)+'</div>';}).join(""):'<p class="note">고른 동아리가 없어요.</p>')));
+  const ab=arr("ab");
+  out.push(ppPage("04.","방과후 · 고1 목표","c-dark",
+    '<div class="q"><div class="qt">듣고 싶은 방과후 과목</div><div class="chips">'+(ab.length?ab.map(a=>'<span class="chip t">'+esc(a)+'</span>').join(""):'<span class="note">고르지 않음</span>')+'</div></div>'+
+    '<div class="q"><div class="qt">고른 이유</div>'+box("ab_why",60)+'</div>'+
+    '<div class="q"><div class="qt">고등학교 1학년 1학기 나의 목표</div>'+box("goal",160)+'</div>'));
+  return out;
+}
+
+/* ---------- PDF 만들기 & 보내기 ---------- */
+let dlPromise=null;
+try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.claude.use("downloads").catch(()=>null); }catch(e){}
+const pdfBtn=document.getElementById("pdfBtn"), saveBtn=document.getElementById("saveBtn"), submitBtn=document.getElementById("submitBtn");
+let lastPdf=null;
+function resetSend(){ if(pdfBtn.dataset.mode!=="send") return; pdfBtn.dataset.mode=""; pdfBtn.textContent="PDF 만들고 제출"; lastPdf=null; saveBtn.hidden=true; submitBtn.hidden=true; }
+saveBtn.addEventListener("click",()=>{ if(lastPdf) download(lastPdf.blob,lastPdf.name); });
+function goTo(id,msg){ statusEl.textContent=msg; const f=document.getElementById(id); if(f){ f.scrollIntoView({block:"center"}); f.focus&&f.focus(); } }
+
+pdfBtn.addEventListener("click",async()=>{
+  if(lastPdf && pdfBtn.dataset.mode==="send"){ return deliver(lastPdf.blob,lastPdf.name); }
+  if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
+  const ci=clsInfo();
+  if(!ci.G) return goTo("f_grade","맨 위의 학년을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.");
+  if(!ci.name) return goTo("f_cls","맨 위의 반을 먼저 써 주세요.");
+  if(!val("name").trim()) return goTo("f_name","맨 위의 이름을 먼저 써 주세요.");
+  if(!cur()) return goTo("f_school","희망 고등학교를 먼저 골라 주세요.");
+  if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
+  pdfBtn.disabled=true;
+  try{
+    const stage=document.getElementById("pdfStage");
+    stage.innerHTML=buildPdfPages().join("");
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+    await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
+    const {jsPDF}=window.jspdf; let pdf=null; const shots=[];
+    const pages=[...stage.children];
+    for(let i=0;i<pages.length;i++){
+      statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
+      const cv=await html2canvas(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false});
+      const w=210, h=Math.max(297,cv.height*w/cv.width);
+      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p");
+      const jp=cv.toDataURL("image/jpeg",0.9); shots.push(jp);
+      pdf.addImage(jp,"JPEG",0,0,w,cv.height*w/cv.width);
+    }
+    stage.innerHTML="";
+    const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
+    lastPdf={blob:pdf.output("blob"),name:"고등학교조사보고서_"+nm+".pdf",shots};
+    pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
+    await submitToTeacher();
+  }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
+  finally{ pdfBtn.disabled=false; }
+});
+
+async function deliver(blob,name){
+  const dl=dlPromise?await dlPromise:null;
+  if(dl){
+    try{ await dl.save({filename:name,data:blob}); statusEl.textContent="저장 완료! 저장한 파일을 카카오톡 채팅방에 첨부하세요."; return; }
+    catch(e){ if(e&&e.code==="declined"){statusEl.textContent="저장을 취소했어요. 다시 누르면 저장할 수 있어요.";return;}
+      if(e&&e.code==="rate_limited"){statusEl.textContent="잠시 후 다시 눌러 주세요.";return;} }
+  }
+  if(window.claude){ showShots(); return; }
+  let file=null; try{ file=new File([blob],name,{type:"application/pdf"}); }catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:name}); statusEl.textContent="보냈어요! 공유 화면에서 카카오톡이 안 보였다면 '파일로 저장' 후 카톡에 첨부하세요."; return; }
+    catch(e){
+      if(e&&e.name==="AbortError"){ statusEl.textContent="공유를 닫았어요. 공유 목록에 카카오톡이 없으면 '파일로 저장'을 누른 뒤 카톡 채팅방에 첨부하세요."; return; }
+      if(e&&e.name==="NotAllowedError"){ statusEl.textContent="'카톡으로 보내기'를 한 번 더 눌러 주세요."; return; }
+    }
+  }
+  download(blob,name);
+}
+function showDone(ok,label){
+  const m=document.getElementById("doneModal");
+  document.getElementById("doneIcon").textContent=ok?"✅":"⚠️";
+  document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
+  document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요.\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
+  document.getElementById("doneShare").hidden=!ok;
+  m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
+}
+document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true;});
+document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; if(lastPdf) deliver(lastPdf.blob,lastPdf.name);});
+
+function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
+async function submitToTeacher(){
+  if(!lastPdf) return;
+  submitBtn.hidden=true;
+  statusEl.textContent="선생님께 제출하는 중… 창을 닫지 마세요.";
+  const ci=clsInfo(); const label=(FORM_NAME+"__"+ci.G+"학년_"+ci.full+"_"+val("name").trim()).replace(/\s+/g,"");
+  const body=JSON.stringify({label,pdf:await blobToB64(lastPdf.blob)});
+  try{
+    const r=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||"fail");
+    lastPdf.submitted=true; showDone(true,label);
+    statusEl.textContent="✅ 선생님께 제출 완료! 다시 제출하면 마지막에 낸 것으로 바뀌어요. 카톡으로도 보내려면 노란 버튼을 누르세요.";
+  }catch(e){
+    if(e instanceof TypeError){
+      try{ await fetch(SUBMIT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+        lastPdf.submitted=true; statusEl.textContent="✅ 선생님께 제출했어요."; showDone(true,label); return; }catch(_){}
+    }
+    submitBtn.hidden=false;
+    statusEl.textContent="⚠️ 제출하지 못했어요. 인터넷 연결을 확인하고 '다시 제출'을 눌러 주세요."; showDone(false);
+  }
+}
+submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await submitToTeacher();}finally{submitBtn.disabled=false;}});
+function download(blob,name){
+  try{ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000);
+    statusEl.textContent="다운로드 폴더에 저장했어요. PC 카카오톡 채팅방에 파일을 끌어다 놓으면 보내져요."; }
+  catch(e){ statusEl.textContent="이 브라우저에서는 저장할 수 없어요. 크롬이나 사파리로 열어 주세요."; }
+}
+function showShots(){
+  const ov=document.getElementById("shots");
+  document.getElementById("shotList").innerHTML=((lastPdf&&lastPdf.shots)||[]).map((s,i)=>'<figure><img src="'+s+'" alt="'+(i+1)+'쪽"><figcaption>'+(i+1)+'쪽</figcaption></figure>').join("");
+  ov.hidden=false; document.getElementById("shotClose").focus();
+  statusEl.textContent="완성된 보고서를 사진으로 저장해 카카오톡으로 보내세요.";
+}
+document.getElementById("shotClose").addEventListener("click",()=>{document.getElementById("shots").hidden=true;});
+
+/* 예시 작성: 주소 끝에 #demo (선생님 테스트용) */
+if(S.v.name==="예시학생"){ S={v:{},ph:{}}; try{localStorage.removeItem(KEY);}catch(_){} }
+if(location.hash.indexOf("#demo")===0){
+  const pick=decodeURIComponent(location.hash.slice(5))||"인천고등학교";
+  const sc=SCH[pick]?pick:NAMES[0];
+  const cl=SCH[sc].clubs.slice(0,3).map(c=>c.n);
+  S.v={grade:"9",cls:"탈레스",name:"예시학생",school:sc,why:"집에서 가깝고, 학교 특색 프로그램이 내 진로와 잘 맞는다.",commute:"버스 약 20분",
+    ev_focus:"수행평가가 40%인 과목이 많다. 글쓰기와 발표 수행평가가 많아서 지금부터 글쓰기 연습을 하겠다.",
+    feat_want:"진로 관련 프로그램에 참여해서 내 진로를 더 구체적으로 정하고 싶다.",
+    clubs:JSON.stringify(cl),club_why_0:"관심 있는 분야라 탐구해 보고 싶다.",club_why_1:"친구들과 함께 프로젝트를 해 보고 싶다.",club_why_2:"진로와 관련된 활동을 기록하고 싶다.",
+    ab:JSON.stringify(["수학","영어"]),ab_why:"고1 첫 시험을 잘 준비하고 싶어서",goal:"공부: 수학 1등급 목표, 매일 복습하기\n학교생활: 동아리 활동 열심히 하기\n진로: 진로 관련 책 3권 읽기"};
+  SCH[sc].ev.length&&missingSubj(SCH[sc]).forEach(m=>{S.v["evm_"+m]="지필 60% (중간 30 · 기말 30), 수행평가: 예시 40%";});
+  DEMO=true; history.replaceState(null,"",location.pathname);
+  setTimeout(()=>{statusEl.textContent="예시 내용으로 채웠어요. 노란 버튼을 누르면 제출 테스트가 돼요.";},0);
+}
+renderForm();
+if(!DEMO) idbGet("photos").then(ph=>{ if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); } }).catch(()=>{});
+if(!DEMO&&Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
+})();
+</script>
+
+</body>
+</html>

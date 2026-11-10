@@ -277,7 +277,7 @@ async function zipFiles(v,label,folders,btn){
     try{ const {blob,name}=await getBlob(v[i].id); (folders?zip.folder(v[i].cls.replace(/\s/g,"")):zip).file(name,blob); }catch(e){ fail++; }
   }
   bar.style.width="100%"; $("msg").textContent="압축하는 중…";
-  const zname="진로탐구보고서_"+label+".zip";
+  const zname=(label.indexOf(FORM)===0?"":FORM+"_")+label+".zip";
   saveBlob(await zip.generateAsync({type:"blob"}),zname);
   $("msg").textContent=(v.length-fail)+"개 파일을 "+zname+"로 받았어요."+(fail?" ("+fail+"개는 가져오지 못했어요)":"");
   $("prog").hidden=true; bar.style.width="0"; btn.disabled=false;
