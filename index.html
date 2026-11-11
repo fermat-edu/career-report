@@ -147,7 +147,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 
 /* ---------- PDF render (always light, fixed width) ---------- */
 #pdfStage{position:fixed;left:-12000px;top:0;width:794px;pointer-events:none}
-.pp{width:794px;box-sizing:border-box;background:#fff;color:#1f2a2c;font-family:var(--body);font-size:14px;line-height:1.6;padding-bottom:36px}
+.pp{width:794px;box-sizing:border-box;background:#fff;color:#1f2a2c;font-family:var(--body);font-size:15px;line-height:1.65;padding-bottom:36px}
 .pp .ribbon{color:#fff} .pp .pbody{padding:22px 48px} .pp .brandline{color:#5f6d70;padding:28px 48px 0}
 .pp .row .lab,.pp .row{border-color:#c9d3d4} .pp .tbl,.pp .subhead{border-top-color:#1f2a2c;border-bottom-color:#1f2a2c}
 .pp .subhead{border-bottom-color:#c9d3d4}
@@ -562,11 +562,15 @@ pdfBtn.addEventListener("click",async()=>{
     const pages=[...stage.children];
     for(let i=0;i<pages.length;i++){
       statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
-      const cv=await html2canvas(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false});
-      const w=210, h=Math.max(297,cv.height*w/cv.width);
-      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,h]}); else pdf.addPage([w,h],"p");
-      const jp=cv.toDataURL("image/jpeg",0.9); shots.push(jp);
-      pdf.addImage(jp,"JPEG",0,0,w,cv.height*w/cv.width);
+      const SC=2, cv=await html2canvas(pages[i],{scale:SC,backgroundColor:"#ffffff",useCORS:true,logging:false});
+      // 내용이 길면 A4 여러 쪽으로 나눔 (인쇄할 때 글씨가 작아지지 않게)
+      for(const [y0,y1,first] of a4Slices(pages[i],cv,SC)){
+        const c=document.createElement("canvas"); c.width=cv.width; c.height=y1-y0;
+        const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(cv,0,y0,cv.width,y1-y0,0,0,cv.width,y1-y0);
+        if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:"a4"}); else pdf.addPage("a4","p");
+        const jp=c.toDataURL("image/jpeg",0.9); shots.push(jp);
+        const mm=210/794/SC; pdf.addImage(jp,"JPEG",0,first?0:A4TOP*SC*mm,210,(y1-y0)*mm);
+      }
     }
     stage.innerHTML="";
     if((S.ph.s3_shot||[]).length){
@@ -625,6 +629,37 @@ async function deliver(blob,name){
   // 3) 공유가 안 되는 브라우저(대부분의 컴퓨터): 파일로 저장
   download(blob,name);
 }
+/* ===== A4 쪽 나누기 =====
+   화면 한 쪽(794px 너비)이 A4 높이(1123px)보다 길면, 문항·표 줄 사이에서 잘라 여러 쪽으로 만듦.
+   문항 하나가 한 쪽보다 길면 글자 줄 사이 빈 곳에서 자름. */
+const A4H=1123, A4TOP=40, A4BOT=36;
+function a4Breaks(el,sc){
+  const top=el.getBoundingClientRect().top, set=new Set();
+  el.querySelectorAll(".pbody>*,.row,.q,.subhead,.grid2,.grid2 tr,.infoline,.note,.pimgs img,.box").forEach(e=>{
+    const r=e.getBoundingClientRect(); set.add(Math.round((r.top-top)*sc)); set.add(Math.round((r.bottom-top)*sc)); });
+  return [...set].sort((a,b)=>a-b);
+}
+function a4WhiteRow(cv,y0,y1){
+  const h=y1-y0; if(h<=0) return y1;
+  const d=cv.getContext("2d").getImageData(0,y0,cv.width,h).data, W=cv.width; let best=y1, score=1e9;
+  for(let y=h-1;y>=0;y--){ let dark=0; for(let x=0;x<W;x+=3){ const k=(y*W+x)*4; if(d[k]+d[k+1]+d[k+2]<700) dark++; }
+    if(dark===0) return y0+y; if(dark<score){score=dark;best=y0+y;} }
+  return best;
+}
+function a4Slices(el,cv,sc){
+  const H=cv.height, bps=a4Breaks(el,sc), out=[]; let y=0, first=true;
+  while(y<H-2){
+    const cap=Math.round((A4H-(first?0:A4TOP)-A4BOT)*sc);
+    if(H-y<=cap+Math.round(A4BOT*sc)){ out.push([y,H,first]); break; }
+    const lim=y+cap; let cut=-1;
+    for(const b of bps) if(b>y+cap*0.45&&b<=lim) cut=b;
+    if(cut<0) cut=a4WhiteRow(cv,Math.round(y+cap*0.6),lim);
+    if(cut<=y) cut=lim;
+    out.push([y,cut,first]); y=cut; first=false;
+  }
+  return out;
+}
+
 /* 제출 결과 알림창 */
 function showDone(ok,label,warn){
   const m=document.getElementById("doneModal");
