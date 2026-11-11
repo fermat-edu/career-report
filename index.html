@@ -3,18 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.endsubmit{background:#fffbe0;border:2px dashed #f2c94c;border-radius:16px;padding:18px;text-align:center}
-.endsubmit p{margin:0 0 12px;line-height:1.6}.endsubmit small{color:var(--muted)}
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.endsubmit{background:#fffbe0;color:#1f2a2c;border:2px dashed #f2c94c;border-radius:16px;padding:18px;text-align:center}
+.endsubmit p{margin:0 0 12px;line-height:1.6}.endsubmit small{color:#5f6d70}
 .endsubmit .btn{font-size:17px;padding:14px 22px;min-width:240px}
 @media (max-width:600px){
  .bar{padding-top:8px}
  .bar-in{gap:6px}
- .bar-in .status{order:-3;flex:1 1 100%;font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .bar-in .status{order:-3;flex:1 1 100%;font-size:12.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
  .bar-in #pdfBtn{order:-2;flex:1 1 100%;font-size:16.5px;padding:12px 10px}
  .bar-in #resetArea{display:contents}
  .bar-in .btn:not(#pdfBtn){font-size:12.5px;padding:7px 9px;min-height:0;flex:1 1 auto;white-space:nowrap}
 }
 .wrap{padding-bottom:calc(var(--barh,120px) + 24px)!important}
+/* 아이폰·아이패드: 글자 칸이 16px보다 작으면 누를 때마다 화면이 확대됨 */
+@supports (-webkit-touch-callout:none){input[type=text],textarea{font-size:16px!important}}
+/* 휴대폰에서 글 쓰는 동안(자판이 올라온 동안)은 아래 막대를 접어 화면을 넓게 */
+body.typing .bar{display:none}
+body.typing .wrap{padding-bottom:24px!important}
+.toast{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:60;background:#1f2a2c;color:#fff;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.3);text-align:center}
 </style>
 </head>
 <body>
@@ -136,14 +142,14 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 .btn:disabled{opacity:.6;cursor:wait}
 .confirm{display:flex;gap:8px;align-items:center;font-size:13px}
 
-.modal{position:fixed;inset:0;z-index:50;background:rgba(15,25,27,.55);display:flex;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.modal{position:fixed;top:0;right:0;bottom:0;left:0;z-index:50;background:rgba(15,25,27,.55);display:flex;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .mbox{background:var(--paper);color:var(--ink);border-radius:16px;padding:24px 20px 18px;width:100%;max-width:360px;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .mbox .micon{font-size:44px;line-height:1}
 .mbox h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0}
 .mbox p{margin:0;color:var(--muted);font-size:14px;white-space:pre-line}
 .mbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .mbtns .btn{flex:1 1 120px}
-.shots{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shots{position:fixed;top:0;right:0;bottom:0;left:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .shots-head{max-width:820px;margin:0 auto 14px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;font-size:14px}
 .shots-head span{color:var(--muted)}
 .shot-list{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
@@ -168,6 +174,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 .pp .box{border:1px solid #9aa6a8;border-radius:14px;padding:10px 14px;min-height:56px;white-space:pre-wrap;word-break:break-word}
 .pp .pimgs{display:flex;flex-direction:column;gap:8px}
 .pp .pimgs img{max-width:100%;max-height:900px;object-fit:contain;align-self:flex-start;border:1px solid #c9d3d4}
+.pp .pimgs img.tall{max-height:none;width:100%;height:auto}
 .pp .grid2 table{min-width:0} .pp .grid2 td{border-color:#9aa6a8}
 .pp .infoline{display:flex;gap:40px;font-weight:700;font-size:14px}
 .pp .infoline span{font-weight:400}
@@ -187,7 +194,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
       <li><b>②</b> 2부 직업·학과·학교탐구, 학습계획</li>
       <li><b>③</b> PDF 만들고 제출 → 선생님께 자동 제출</li>
     </ul>
-    <p class="note">사진 넣기는 휴대폰이면 갤러리, 컴퓨터면 파일 선택 창이 열려요. 쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
+    <p class="note">사진 넣기는 휴대폰이면 갤러리, 컴퓨터면 파일 선택 창이 열려요. 컴퓨터는 캡처한 뒤 글 칸을 누르고 Ctrl+V로 붙여 넣어도 돼요. 쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 쓸 수 있어요. (다른 기기로는 이어지지 않아요)</p>
   </header>
   <div id="form"></div>
   <section class="endsubmit" aria-label="제출하기">
@@ -208,6 +215,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
   </div>
 </div>
 
+<div id="toast" class="toast" hidden role="status"></div>
 <div id="pdfStage" aria-hidden="true"></div>
 
 <div id="doneModal" class="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="doneTitle">
@@ -298,6 +306,7 @@ const PAGES=[{cover:true},...PAGES_.slice(iP2),...PAGES_.slice(0,iP2).filter(p=>
 
 /* ---------- 상태 ---------- */
 const KEY="fermat-career-report-v1";
+const IS_MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||"")||(/Macintosh/.test(navigator.userAgent||"")&&navigator.maxTouchPoints>1);
 let S={v:{},ph:{}};
 try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&o.v) S={v:o.v||{},ph:o.ph||{}};}}catch(e){}
 let saveT=null, dirty=false;
@@ -320,7 +329,7 @@ function save(photo){if(DEMO)return; dirty=true; if(photo){phDirty=true; return 
 // 창을 닫거나 다른 앱으로 넘어갈 때 바로 저장
 addEventListener("pagehide",saveNow);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveNow();});
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const val=id=>S.v[id]||"";
 /* 학년·반 정리: 1·2·3학년은 7·8·9학년으로, 반은 "9탈레스반"처럼 학년+반 이름으로 */
 const normG=n=>{n=+n; return n>=1&&n<=3?n+6:n;};
@@ -455,6 +464,29 @@ function updCount(t){const c=document.getElementById("cnt_"+t.dataset.id); if(!c
 const form=document.getElementById("form");
 form.addEventListener("input",e=>{const t=e.target; if(!t.dataset.id)return; S.v[t.dataset.id]=t.value; if(t.dataset.limit)updCount(t); save();});
 
+/* 휴대폰·태블릿: 글 칸을 누르고 있는 동안은 아래 막대를 접음 (자판 + 막대가 화면을 다 가리지 않게) */
+(function(){ let coarse=false; try{ coarse=matchMedia("(pointer:coarse)").matches; }catch(e){}
+  if(!coarse&&!IS_MOBILE) return; let t=null;
+  const isField=e=>e&&(e.tagName==="TEXTAREA"||(e.tagName==="INPUT"&&e.type==="text"));
+  document.addEventListener("focusin",e=>{ if(isField(e.target)){ clearTimeout(t); document.body.classList.add("typing"); } });
+  // 막대가 접혀 있는 동안 생긴 알림(⚠️ 등)은 화면 위 말풍선으로 보여 줌
+  const toast=document.getElementById("toast"); let tt=null;
+  new MutationObserver(()=>{ const m=statusEl.textContent||""; if(!document.body.classList.contains("typing")||/^작성 중|자동 저장됨$/.test(m)) return;
+    toast.textContent=m; toast.hidden=false; clearTimeout(tt); tt=setTimeout(()=>{toast.hidden=true;},5000); }).observe(statusEl,{childList:true,characterData:true,subtree:true});
+  document.addEventListener("focusout",()=>{ clearTimeout(t); t=setTimeout(()=>{ if(!isField(document.activeElement)) document.body.classList.remove("typing"); },200); });
+})();
+/* 컴퓨터: 캡처를 복사한 뒤 글 칸을 누르고 Ctrl+V 하면 그 칸에 사진으로 들어감 */
+document.addEventListener("paste",async e=>{
+  const cd=e.clipboardData; if(!cd) return;
+  const fs=[...(cd.files||[])].filter(f=>f.type&&f.type.indexOf("image/")===0); if(!fs.length) return;
+  const act=document.activeElement, host=act&&act.closest?act.closest(".row,.q,.up"):null, box=host&&host.querySelector("[data-ph]");
+  const id=box?box.dataset.ph:(host&&host.id==="upBox"?"s3_shot":null);
+  if(!id){ statusEl.textContent="사진을 넣을 칸(글 쓰는 칸)을 먼저 누른 뒤 붙여 넣어 주세요."; return; }
+  e.preventDefault();
+  for(const f of fs){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f,id==="s3_shot")); }catch(_){ statusEl.textContent=BADPH; } }
+  refreshPh(id); save(true); if(pdfBtn.dataset.mode==="send") resetSend();
+  statusEl.textContent="붙여 넣은 캡처를 사진으로 넣었어요 · 자동 저장됨";
+});
 /* 사진 */
 const picker=document.createElement("input"); picker.type="file"; picker.accept="image/*"; picker.multiple=true; picker.hidden=true; document.body.appendChild(picker);
 let pickFor=null;
@@ -462,11 +494,18 @@ form.addEventListener("click",e=>{
   const a=e.target.closest("[data-add]"); if(a){pickFor=a.dataset.add; picker.value=""; picker.click(); return;}
   const d=e.target.closest("[data-del]"); if(d){const id=d.dataset.del; (S.ph[id]||[]).splice(+d.dataset.i,1); refreshPh(id); save(true);}
 });
-picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent="사진을 읽지 못했어요. 다른 사진으로 해 보세요.";} } refreshPh(id); save(true);});
+picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent=BADPH;} } refreshPh(id); save(true);});
+const BADPH="⚠️ 열 수 없는 사진이 있었어요. 화면 캡처(스크린샷)나 JPG·PNG 사진으로 올려 주세요. (HEIC 사진은 안 열릴 수 있어요)";
 function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id,box.classList.contains("photo-big")); else if(id==="s3_shot") refreshUp();}
 function shrink(file,big){return new Promise((res,rej)=>{const r=new FileReader(); r.onerror=rej; r.onload=()=>{const img=new Image(); img.onerror=rej; img.onload=()=>{
-  const M=1400, k=big?Math.min(1,1200/img.width,6000/img.height):Math.min(1,M/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
-  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",big?0.88:0.82));}; img.src=r.result;}; r.readAsDataURL(file);});}
+  const w=img.width, h=img.height; if(!w||!h){rej(new Error("empty"));return;}
+  // 보통 사진은 긴 쪽 1400px, 세로로 아주 긴 캡처(스크롤 캡처)는 너비 1200px까지 (아이폰 캔버스 한도 1,600만 화소 안쪽)
+  const longCap=Math.min(1,1200/w,16000/h,Math.sqrt(12e6/(w*h)));
+  const k=(big||h/w>2.6)?longCap:Math.min(1,1400/Math.max(w,h)); const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(h*k));
+  const g=c.getContext("2d"); if(!g){rej(new Error("canvas"));return;} g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height);
+  const out=c.toDataURL("image/jpeg",big?0.88:0.82); c.width=c.height=0; if(out.length<200){rej(new Error("blank"));return;} res(out);}; img.src=r.result;}; r.readAsDataURL(file);});}
+/* 예전 아이패드·아이폰에는 file.arrayBuffer()가 없음 */
+function readBuf(f){ return f.arrayBuffer?f.arrayBuffer():new Promise((res,rej)=>{const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsArrayBuffer(f);}); }
 
 /* 커리어넷 결과지 업로드 */
 const upPicker=document.createElement("input"); upPicker.type="file"; upPicker.accept="application/pdf,.pdf,image/*"; upPicker.multiple=true; upPicker.hidden=true; document.body.appendChild(upPicker);
@@ -479,11 +518,14 @@ form.addEventListener("click",e=>{
 });
 async function handleUpload(fileList){
   let bad=0;
-  const files=[...fileList].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const fl=[...fileList], tm=fl.map(f=>f.lastModified||0), byName=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true});
+  // 아이폰은 파일 시각이 모두 '방금 고른 시각'이라 이름(IMG_0001…) 순서로, 그 밖에는 찍은 시각 순서로
+  const pickedNow=fl.length>1&&Math.max(...tm)-Math.min(...tm)<15000&&Date.now()-Math.min(...tm)<120000;
+  const files=fl.sort((a,b)=>pickedNow?byName(a,b):((a.lastModified-b.lastModified)||byName(a,b)));
   for(const f of files){
     const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);
     if(isPdf){
-      try{ const buf=await f.arrayBuffer(); let pages=0;
+      try{ const buf=await readBuf(f); let pages=0;
         if(window.PDFLib){ const d=await PDFLib.PDFDocument.load(buf.slice(0),{ignoreEncryption:true}); pages=d.getPageCount(); }
         PDFS.push({name:f.name,buf,pages}); }
       catch(e){ bad++; }
@@ -493,7 +535,7 @@ async function handleUpload(fileList){
   }
   refreshUp(); resetSend(); dirty=true; saveNow();
   idbPut("pdfs",PDFS).then(()=>{ if(!bad) statusEl.textContent="결과지를 올렸어요 · 저장됨"; }).catch(()=>{ statusEl.textContent="결과지는 올렸지만 저장 공간이 부족해요. 창을 닫지 말고 PDF까지 만들어 주세요."; });
-  if(bad) statusEl.textContent="열 수 없는 파일이 있었어요. PDF나 사진 파일인지 확인해 주세요.";
+  if(bad) statusEl.textContent="⚠️ 열 수 없는 파일이 "+bad+"개 있었어요. PDF나 JPG·PNG 사진(화면 캡처)인지 확인해 주세요.";
 }
 upPicker.addEventListener("change",()=>handleUpload(upPicker.files));
 /* 아래 바의 PDF 추가 버튼 */
@@ -525,7 +567,7 @@ resetArea.addEventListener("click",e=>{
 
 /* ---------- PDF용 화면 ---------- */
 const T=id=>esc(val(id));
-function imgs(id){const l=S.ph[id]||[]; return l.length?'<div class="pimgs">'+l.map(s=>'<img src="'+(PHONECROP[s]||s)+'">').join("")+'</div>':"";}
+function imgs(id){const l=S.ph[id]||[]; return l.length?'<div class="pimgs">'+l.map(s=>'<img'+(TALL[s]?' class="tall"':'')+' src="'+(PHONECROP[s]||s)+'">').join("")+'</div>':"";}
 function itemPdf(it){
   switch(it.kind){
     case "row": return '<div class="row"><div class="lab">'+esc(it.label)+'</div><div class="val"><div class="txt" style="min-height:'+(it.type==="line"?22:Math.max(44,it.rows*20))+'px">'+T(it.id)+'</div>'+(it.photo?imgs(it.id):"")+'</div></div>';
@@ -554,7 +596,7 @@ function buildPdfPages(){
 let dlPromise=null;
 try{ if(window.claude&&typeof window.claude.use==="function") dlPromise=window.claude.use("downloads").catch(()=>null); }catch(e){}
 const pdfBtn=document.getElementById("pdfBtn");
-let lastPdf=null;
+let lastPdf=null, afterOk=null;
 const saveBtn=document.getElementById("saveBtn");
 function resetSend(){pdfBtn.dataset.mode="";pdfBtn.textContent="PDF 만들고 제출";lastPdf=null;saveBtn.hidden=true;const sb=document.getElementById("submitBtn"); if(sb) sb.hidden=true;}
 saveBtn.addEventListener("click",()=>{ if(lastPdf) download(lastPdf.blob,lastPdf.name); });
@@ -564,7 +606,11 @@ pdfBtn.addEventListener("click",async()=>{
   if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
   if(!val("name").trim()||!clsInfo().G||!clsInfo().name){
     statusEl.textContent="맨 위(1단계)의 학년·반·이름을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.";
-    const f=document.getElementById(!clsInfo().G?"f_grade":!clsInfo().name?"f_cls":"f_name"); if(f){f.scrollIntoView({block:"center"}); f.focus();} return;
+    const miss=!clsInfo().G?"grade":!clsInfo().name?"cls":"name", f=document.getElementById("f_"+miss);
+    document.getElementById("doneIcon").textContent="✏️"; document.getElementById("doneTitle").textContent={grade:"학년",cls:"반",name:"이름"}[miss]+"을 써 주세요";
+    document.getElementById("doneText").textContent="맨 위(1단계)의 학년·반·이름을 먼저 써야\n선생님께 제출할 수 있어요."; document.getElementById("doneShare").hidden=true;
+    afterOk=()=>{ if(f){ try{f.scrollIntoView({block:"center"});}catch(_){f.scrollIntoView();} f.focus(); } };
+    document.getElementById("doneModal").hidden=false; document.getElementById("doneOk").focus(); return;
   }
   pdfBtn.disabled=true; let sent=false;
   SubmitKit.mark(QKEY,true);
@@ -572,30 +618,53 @@ pdfBtn.addEventListener("click",async()=>{
   try{
     const stage=document.getElementById("pdfStage");
     try{ await prepPhoneCrops(); }catch(e){ PHONECROP={}; }
-    stage.innerHTML=buildPdfPages().join("");
-    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-    await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
-    const {jsPDF}=window.jspdf; let pdf=null; const shots=[];
-    const pages=[...stage.children];
-    for(let i=0;i<pages.length;i++){
-      statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+pages.length+"쪽)";
-      const SC=2, cv=await html2canvas(pages[i],{scale:SC,backgroundColor:"#ffffff",useCORS:true,logging:false});
+    const htmls=buildPdfPages();
+    if(document.fonts&&document.fonts.ready) await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,4000))]);
+    const {jsPDF}=window.jspdf; let pdf=null; const shots=[], keepShots=!!window.claude;
+    const SC=2, CHUNK=3200;   // 한 번에 찍는 높이(화면 px). 아이폰은 캔버스가 1,600만 화소를 넘으면 빈 화면이 돼서 긴 쪽은 나눠 찍음
+    const skip=e=>e.id==="app"||e.id==="doneModal"||e.id==="shots"||(e.classList&&(e.classList.contains("bar")||e.classList.contains("skw")||e.classList.contains("iab")));
+    const addSlice=(cv,sy,sh,first)=>{
+      const c=document.createElement("canvas"); c.width=cv.width; c.height=sh;
+      const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(cv,0,sy,cv.width,sh,0,0,cv.width,sh);
+      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:"a4"}); else pdf.addPage("a4","p");
+      const jp=c.toDataURL("image/jpeg",0.9); c.width=c.height=0; if(keepShots) shots.push(jp);
+      const mm=210/794/SC; pdf.addImage(jp,"JPEG",0,first?0:A4TOP*SC*mm,210,sh*mm);
+    };
+    for(let i=0;i<htmls.length;i++){
+      statusEl.textContent="PDF 만드는 중… ("+(i+1)+"/"+htmls.length+"쪽)";
+      stage.innerHTML=htmls[i]; const el=stage.firstElementChild;
+      await Promise.all([...stage.querySelectorAll("img")].map(im=>im.complete?0:new Promise(r=>{im.onload=im.onerror=r;})));
       // 내용이 길면 A4 여러 쪽으로 나눔 (인쇄할 때 글씨가 작아지지 않게)
-      for(const [y0,y1,first] of a4Slices(pages[i],cv,SC)){
-        const c=document.createElement("canvas"); c.width=cv.width; c.height=y1-y0;
-        const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(cv,0,y0,cv.width,y1-y0,0,0,cv.width,y1-y0);
-        if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:"a4"}); else pdf.addPage("a4","p");
-        const jp=c.toDataURL("image/jpeg",0.9); shots.push(jp);
-        const mm=210/794/SC; pdf.addImage(jp,"JPEG",0,first?0:A4TOP*SC*mm,210,(y1-y0)*mm);
+      const Hc=Math.ceil(el.getBoundingClientRect().height), H=Math.round(Hc*SC), bps=a4Breaks(el,SC);
+      let y=0, first=true;
+      while(y<H-2){
+        const y0c=Math.floor(y/SC), hc=Math.min(CHUNK,Hc-y0c), last=y0c+hc>=Hc;
+        const cv=await html2canvas(el,{scale:SC,backgroundColor:"#ffffff",useCORS:true,logging:false,y:y0c,height:hc,ignoreElements:skip});
+        const off=y0c*SC, end=last?H:off+cv.height; let made=0;
+        while(y<H-2){
+          const cap=Math.round((A4H-(first?0:A4TOP)-A4BOT)*SC); let cut;
+          if(H-y<=cap+Math.round(A4BOT*SC)) cut=H;
+          else{ const lim=y+cap; if(lim>end) break;
+            cut=-1; for(const b of bps) if(b>y+cap*0.45&&b<=lim) cut=b;
+            if(cut<0) cut=a4WhiteRow(cv,Math.round(y+cap*0.6)-off,lim-off)+off;
+            if(cut<=y) cut=lim; }
+          if(cut>end){ if(!last) break; cut=end; }
+          const sy=y-off, sh=Math.min(cut-off,cv.height)-sy; if(sh<1){ y=cut; continue; }
+          addSlice(cv,sy,sh,first); made++; y=cut; first=false;
+        }
+        cv.width=cv.height=0;
+        if(!made&&!last) throw new Error("slice");
+        if(last) break;
       }
+      await new Promise(r=>setTimeout(r,0));   // 화면이 멈춘 것처럼 보이지 않게 숨 돌리기
     }
     stage.innerHTML="";
     if((S.ph.s3_shot||[]).length){
       statusEl.textContent="캡처 사진을 이어 붙이는 중…";
-      for(const pg of await stitchPages(S.ph.s3_shot)){
-        const jp=pg.canvas.toDataURL("image/jpeg",0.9); shots.push(jp);
-        pdf.addPage([210,297],"p"); pdf.addImage(jp,"JPEG",10,10,190,pg.canvas.height*190/pg.canvas.width);
-      }
+      await stitchPages(S.ph.s3_shot,c=>{
+        const jp=c.toDataURL("image/jpeg",0.9); if(keepShots) shots.push(jp);
+        pdf.addPage([210,297],"p"); pdf.addImage(jp,"JPEG",10,10,190,c.height*190/c.width);
+      });
     }
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
     let blob=pdf.output("blob"), failed=0;
@@ -616,8 +685,8 @@ pdfBtn.addEventListener("click",async()=>{
     pdfBtn.textContent="카톡으로 보내기"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     sent=true; await submitToTeacher();
     if(false) statusEl.textContent=failed?"PDF 완성! 단, 결과지 파일 "+failed+"개는 붙이지 못했어요(보호된 파일). 결과지는 캡처 사진으로 올려 주세요.":"PDF 완성! 노란 '카톡으로 보내기'를 누르고 카카오톡을 고르세요.";
-  }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 사진 개수를 줄이고 다시 해 보세요."; }
-  finally{ pdfBtn.disabled=false; if(!sent){ SubmitKit.hide(); SubmitKit.mark(QKEY,false); } }
+  }catch(e){ statusEl.textContent="⚠️ PDF를 만들지 못했어요. 다른 앱·창을 닫고 다시 눌러 보세요. 계속 안 되면 사진 수를 줄여 주세요. (쓴 내용은 저장돼 있어요)"; }
+  finally{ pdfBtn.disabled=false; try{document.getElementById("pdfStage").innerHTML="";}catch(_){} if(!sent){ SubmitKit.hide(); SubmitKit.mark(QKEY,false); } }
 });
 // 내용을 고치면 PDF를 다시 만들도록
 form.addEventListener("input",()=>{ if(pdfBtn.dataset.mode==="send"){resetSend();} });
@@ -636,7 +705,7 @@ async function deliver(blob,name){
   if(window.claude){ showShots(); return; }
   // 2) 공유 화면 열기 → 카카오톡 선택 (휴대폰·태블릿·지원되는 컴퓨터)
   let file=null; try{ file=new File([blob],name,{type:"application/pdf"}); }catch(e){}
-  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+  if(IS_MOBILE&&file&&navigator.canShare&&navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file],title:name}); statusEl.textContent="보냈어요! 공유 화면에서 카카오톡이 안 보였다면 '파일로 저장' 후 카톡에 첨부하세요."; return; }
     catch(e){
       if(e&&e.name==="AbortError"){ statusEl.textContent="공유를 닫았어요. 공유 목록에 카카오톡이 없으면 '파일로 저장'을 누른 뒤 카톡 채팅방에 첨부하세요."; return; }
@@ -663,20 +732,6 @@ function a4WhiteRow(cv,y0,y1){
     if(dark===0) return y0+y; if(dark<score){score=dark;best=y0+y;} }
   return best;
 }
-function a4Slices(el,cv,sc){
-  const H=cv.height, bps=a4Breaks(el,sc), out=[]; let y=0, first=true;
-  while(y<H-2){
-    const cap=Math.round((A4H-(first?0:A4TOP)-A4BOT)*sc);
-    if(H-y<=cap+Math.round(A4BOT*sc)){ out.push([y,H,first]); break; }
-    const lim=y+cap; let cut=-1;
-    for(const b of bps) if(b>y+cap*0.45&&b<=lim) cut=b;
-    if(cut<0) cut=a4WhiteRow(cv,Math.round(y+cap*0.6),lim);
-    if(cut<=y) cut=lim;
-    out.push([y,cut,first]); y=cut; first=false;
-  }
-  return out;
-}
-
 /* 제출 결과 알림창 */
 function showDone(ok,label,warn){
   const m=document.getElementById("doneModal");
@@ -686,7 +741,7 @@ function showDone(ok,label,warn){
   document.getElementById("doneShare").hidden=!ok;
   m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
 }
-document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true;});
+document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; const f=afterOk; afterOk=null; if(f) f();});
 document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; if(lastPdf) deliver(lastPdf.blob,lastPdf.name);});
 
 /* 선생님께 제출 */
@@ -698,6 +753,13 @@ async function submitToTeacher(){
   submitBtn.hidden=true;
   const ci=clsInfo(); const label=lastPdf.label||(ci.G+"학년_"+ci.full+"_"+val("name").trim()).replace(/\s+/g,"");
   const warn=lastPdf.failed?" (결과지 파일 "+lastPdf.failed+"개는 보호된 파일이라 붙이지 못했어요. 캡처 사진으로 올린 뒤 다시 만들어 주세요.)":"";
+  if(lastPdf.blob.size>34*1048576){
+    SubmitKit.hide(); SubmitKit.mark(QKEY,false); submitBtn.hidden=true;
+    statusEl.textContent="⚠️ 파일이 너무 커서("+Math.round(lastPdf.blob.size/1048576)+"MB) 제출할 수 없어요. 사진이나 결과지 파일 수를 줄인 뒤 다시 'PDF 만들고 제출'을 눌러 주세요.";
+    document.getElementById("doneIcon").textContent="⚠️"; document.getElementById("doneTitle").textContent="파일이 너무 커요";
+    document.getElementById("doneText").textContent="사진이나 결과지 파일 수를 줄인 뒤\n다시 'PDF 만들고 제출'을 눌러 주세요."; document.getElementById("doneShare").hidden=true; document.getElementById("doneModal").hidden=false;
+    return;
+  }
   SubmitKit.show(SubmitKit.sizeMsg(lastPdf.blob.size),statusEl);
   const ok=await SubmitKit.post(SUBMIT_URL,QKEY,label,lastPdf.blob,statusEl);
   SubmitKit.hide(); SubmitKit.mark(QKEY,false);
@@ -831,22 +893,23 @@ function barsFor(sigs){ // 사진마다 [위에서 뺄 줄, 아래에서 뺄 줄
     return {t:ct>0?Math.max(ct,Math.min(one.t,ct+Math.round(g.H*0.01))):one.t, b:cb>0?cb:one.b}; });
 }
 /* 보고서 칸에 넣은 캡처 사진: PDF 만들 때 바를 잘라낸 사본을 씀 (저장된 원본은 그대로) */
-let PHONECROP={};
+let PHONECROP={}, TALL={};
 async function prepPhoneCrops(){
-  PHONECROP={};
+  PHONECROP={}; TALL={};
   for(const id of Object.keys(S.ph||{})){ if(id==="s3_shot") continue; const list=S.ph[id]||[]; if(!list.length) continue;
     const im=[]; for(const src of list){ try{ im.push(await loadImg(src)); }catch(e){ im.push(null); } }
     const ok=im.filter(Boolean); if(!ok.length) continue;
+    list.forEach((src,i)=>{ if(im[i]&&im[i].height/im[i].width>2.6) TALL[src]=1; });   // 스크롤 캡처: 줄이지 않고 여러 쪽에 나눠 넣기
     const sigs=ok.map(i=>sigOf(i,Math.min(1200,i.width))), bars=barsFor(sigs);
     let k=0; list.forEach((src,i)=>{ if(!im[i]) return; const g=sigs[k], bb=bars[k]; k++;
       if(!bb.t&&!bb.b) return; const sc=g.img.width/Math.min(1200,g.img.width);
       const y0=Math.round(bb.t*sc), y1=Math.round(g.img.height-bb.b*sc); if(y1-y0<g.img.height*0.5) return;
       const c=document.createElement("canvas"); c.width=g.img.width; c.height=y1-y0; c.getContext("2d").drawImage(g.img,0,y0,g.img.width,y1-y0,0,0,g.img.width,y1-y0);
-      PHONECROP[src]=c.toDataURL("image/jpeg",0.9); });
+      PHONECROP[src]=c.toDataURL("image/jpeg",0.9); c.width=c.height=0; });
   }
 }
 
-async function stitchPages(srcs){
+async function stitchPages(srcs,each){   // each(canvas): 한 쪽씩 넘겨받고 바로 캔버스를 비움 (아이폰 메모리 한도)
   const imgs=[]; for(const s of srcs){ try{ imgs.push(await loadImg(s)); }catch(e){} }
   if(!imgs.length) return [];
   const W=Math.min(1200,imgs[0].width);
@@ -884,15 +947,16 @@ async function stitchPages(srcs){
       if(z>a&&!s.gap){ const sc=s.sig.img.width/W, sy=s.y0+(a-pos);
         g.drawImage(s.sig.img,0,sy*sc,s.sig.img.width,(z-a)*sc,0,dy+(a-y),W,z-a); }
       pos+=h; }
-    pages.push({canvas:c}); y=e; first=false;
+    if(each){ await each(c); c.width=c.height=0; } else pages.push({canvas:c});
+    y=e; first=false;
   }
   return pages;
 }
 async function previewStitch(btn){
   const a=S.ph.s3_shot||[]; if(!a.length) return;
   btn.disabled=true; const t=btn.textContent; btn.textContent="이어 붙이는 중…";
-  try{ const pgs=await stitchPages(a);
-    openOverlay("이어 붙인 결과지 미리보기","PDF 맨 뒤에 이렇게 붙어요. 순서가 이상하면 닫고 사진 아래 ◀ ▶로 순서를 바꾸세요.",pgs.map(p=>p.canvas.toDataURL("image/jpeg",0.85))); }
+  try{ const list=[]; await stitchPages(a,c=>{ list.push(c.toDataURL("image/jpeg",0.85)); });
+    openOverlay("이어 붙인 결과지 미리보기","PDF 맨 뒤에 이렇게 붙어요. 순서가 이상하면 닫고 사진 아래 ◀ ▶로 순서를 바꾸세요.",list); }
   catch(e){ statusEl.textContent="미리보기를 만들지 못했어요. 사진 수를 줄여 보세요."; }
   finally{ btn.disabled=false; btn.textContent=t; }
 }
