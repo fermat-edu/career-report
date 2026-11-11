@@ -32,6 +32,9 @@ const CSS=`.sk{display:flex;flex-direction:column;gap:12px}
 .sk .cl{max-height:420px;overflow:auto;border:1px solid var(--line,#ccd);border-radius:10px;padding:4px 10px}
 .sk h4{margin:6px 0 0;font-size:14.5px}
 .sk .hint{font-size:12.5px;color:var(--muted,#666)}
+.sk .skwarn{background:#fee500;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.6;margin:6px 0}
+.sk .sktime{background:#fff7e0;border:1px solid #f2c94c;border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.6;margin:6px 0}
+.sk .fl{font-size:12.5px;margin-top:6px;line-height:1.6}.sk .fl small{color:var(--muted,#666)}.sk .fl .bad{color:#b26a00}
 .sk .evhelp{background:#eef6f7;border:1px solid #bcd9dc;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.65;color:#1d2b2d}
 .sk .evhelp summary{cursor:pointer;font-weight:700}
 .sk .evhelp ol{margin:6px 0 4px;padding-left:20px}.sk .evhelp code{background:#fff;border:1px solid #cfdcdd;border-radius:4px;padding:0 4px;font-size:12.5px}
@@ -46,14 +49,22 @@ K.uploadHtml=function(id,o={}){
   return '<div class="sk" id="'+id+'">'+
    '<div class="skrow"><label>학교 이름<input type="text" data-k="school" placeholder="예: ○○고등학교" value="'+esc(o.school||"")+'"></label>'+
    '<label>공시 연도<input type="number" data-k="year" value="'+(o.year||y)+'" min="2020" max="2100"></label></div>'+
-   '<p class="hint">학교알리미 → 학교 검색 → 공시정보에서 받은 파일을 넣어 주세요. hwp·hwpx·pdf·xlsx 모두 돼요. 여러 개를 한 번에 골라도 돼요.</p>'+
+   (K.inApp()?'<p class="skwarn">⚠️ 지금 <b>카카오톡(앱 안) 브라우저</b>로 열려 있어요. 여기서는 파일 고르기·오래 걸리는 정리·저장이 중간에 멈출 수 있어요. <b>크롬·사파리·삼성 인터넷</b>으로 다시 열어서 올려 주세요.</p>':'')+
+   '<p class="hint">학교알리미 → 학교 검색 → 공시정보에서 받은 파일을 넣어 주세요. <b>hwp·hwpx·pdf·xlsx</b> 모두 돼요. 여러 개를 한 번에 골라도 돼요.</p>'+
+   '<p class="sktime">⏳ <b>시간 안내:</b> 파일을 정리하고 원본을 만드는 데 보통 <b>1~3분</b>, 파일이 크면(한글 파일 수십 쪽·스캔 PDF) <b>3~5분</b>까지 걸려요. 그동안 <b>화면을 끄거나 다른 앱으로 넘어가지 말고</b> 기다려 주세요. 컴퓨터에서 하면 더 빨라요.</p>'+
    [["ev","① 교과별(학년별) 교수·학습 및 평가계획","학업성취사항 메뉴 · 과목별 파일 여러 개 가능"],["club","② 동아리 활동 현황 / 동아리 운영계획서","교육활동 메뉴"],["feat","③ 교육운영 특색사업 계획","교육활동 메뉴 · 과학중점·AI중점 계획서도 여기에"]]
-    .map(([k,t,s])=>'<div class="fbox"><b>'+t+'</b><small>'+s+'</small><input type="file" multiple accept=".hwp,.hwpx,.pdf,.xlsx" data-f="'+k+'"></div>').join("")+
+    .map(([k,t,s])=>'<div class="fbox"><b>'+t+'</b><small>'+s+'</small><input type="file" multiple data-f="'+k+'"><div class="fl" data-fl="'+k+'"></div></div>').join("")+
    (o.logo!==false?'<div class="fbox"><b>④ 학교 로고 (선택)</b><small>보고서 첫 쪽에 들어가요. 학교 홈페이지의 교표 이미지를 저장해서 올리세요. 로고만 올리면 기본 11개 학교에도 로고만 붙어요.</small><input type="file" accept="image/*" data-f="logo"></div>':'')+
    '</div>';
 };
+let WL=null; K.awake=async function(on){ try{ if(on&&!WL&&navigator.wakeLock){ WL=await navigator.wakeLock.request("screen"); WL.addEventListener("release",()=>{WL=null;}); } else if(!on&&WL){ WL.release(); WL=null; } }catch(e){} };
+K.OKEXT=/\.(hwp|hwpx|pdf|xlsx)$/i;
+K.inApp=function(){ const ua=navigator.userAgent||""; return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER\(inapp|everytimeApp|DaumApps/i.test(ua); };
+document.addEventListener("change",e=>{ const t=e.target; if(!t.matches||!t.matches('.sk input[type=file][data-f]')||t.dataset.f==="logo") return;
+  const box=t.parentNode.querySelector("[data-fl]"); if(!box) return; const mb=b=>b>1048576?(b/1048576).toFixed(1)+"MB":Math.max(1,Math.round(b/1024))+"KB";
+  box.innerHTML=[...t.files].map(f=>K.OKEXT.test(f.name)?'<div>📄 '+esc(f.name)+' <small>'+mb(f.size)+'</small></div>':'<div class="bad">⚠️ '+esc(f.name)+' <small>— 이 형식은 못 읽어요 (hwp·hwpx·pdf·xlsx만 돼요)</small></div>').join(""); });
 K.readUpload=function(root){
-  const g=k=>root.querySelector('[data-k="'+k+'"]').value.trim(), f=k=>[...root.querySelector('[data-f="'+k+'"]').files];
+  const g=k=>root.querySelector('[data-k="'+k+'"]').value.trim(), f=k=>[...root.querySelector('[data-f="'+k+'"]').files].filter(x=>K.OKEXT.test(x.name));
   const lg=root.querySelector('[data-f="logo"]');
   return {school:g("school"),year:+g("year")||new Date().getFullYear(),files:{ev:f("ev"),club:f("club"),feat:f("feat")},logo:lg&&lg.files[0]||null};
 };

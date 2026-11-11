@@ -362,7 +362,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="school-data.js?v=5"></script>
-<script src="school-kit.js?v=5"></script>
+<script src="school-kit.js?v=6"></script>
 <script src="submit-kit.js?v=2"></script>
 <script>
 (function(){
@@ -582,15 +582,15 @@ form.addEventListener("click",async e=>{
     const b=e.target.closest("#ownAnalyze"); OWNUP=SchoolKit.readUpload(document.getElementById("ownUp"));
     if(!OWNUP.school) return ownMsg("학교 이름을 써 주세요.");
     if(!OWNUP.files.ev.length&&!OWNUP.files.club.length&&!OWNUP.files.feat.length) return ownMsg("파일을 하나 이상 골라 주세요.");
-    b.disabled=true;
-    try{ ownMsg("도구 불러오는 중…"); await SchoolKit.loadLibs(); OWNRES=await SchoolParse.analyze(OWNUP.files,ownMsg);
+    b.disabled=true; SubmitKit.awake(true);
+    try{ ownMsg("도구 불러오는 중… (정리는 보통 1~3분, 파일이 크면 3~5분 걸려요. 화면을 끄지 마세요)"); await SchoolKit.loadLibs(); OWNRES=await SchoolParse.analyze(OWNUP.files,ownMsg);
       const ed=document.getElementById("ownEditor"); ed.innerHTML=SchoolKit.editorHtml({ev:OWNRES.ev,clubs:OWNRES.clubs,feat:[]},OWNRES); SchoolKit.bindEditor(ed);
       document.getElementById("ownUse").hidden=false; ownMsg("정리했어요. 내용을 확인하고 고칠 곳이 있으면 고친 뒤 아래 버튼을 누르세요.");
-    }catch(err){ ownMsg("정리하지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; }
+    }catch(err){ ownMsg("정리하지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; SubmitKit.awake(false); }
     return;
   }
   if(e.target.closest("#ownUse")){
-    const b=e.target.closest("#ownUse"); if(!OWNRES) return; b.disabled=true;
+    const b=e.target.closest("#ownUse"); if(!OWNRES) return; b.disabled=true; SubmitKit.awake(true); ownMsg("원본 PDF를 만드는 중… (1~3분 걸려요. 화면을 끄지 마세요)");
     try{ const ed=SchoolKit.readEditor(document.getElementById("ownEditor").querySelector("[data-editor]"));
       const pd=await SchoolKit.buildPdfs(OWNRES,OWNUP.school,OWNUP.year,ownMsg);
       const logo=OWNUP.logo?await SchoolKit.logoDataUrl(OWNUP.logo):"";
@@ -598,7 +598,7 @@ form.addEventListener("click",async e=>{
       await idbPut("own_ev",pd.ev?pd.ev.bytes:null); await idbPut("own_feat",pd.ft?pd.ft.bytes:null); await idbPut("own",OWN);
       setArr("clubs",[]); save(); resetSend(); renderForm(); statusEl.textContent="✅ "+OWN.name+" 자료를 만들었어요. 아래에서 동아리 3개를 고르세요.";
       OWNDOCS=null; ownDocIds().catch(()=>{}); // 동아리 고르는 동안 원본을 미리 선생님 쪽에 올려 둠
-    }catch(err){ ownMsg("만들지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; }
+    }catch(err){ ownMsg("만들지 못했어요: "+(err.message||err)); } finally{ b.disabled=false; SubmitKit.awake(false); }
     return;
   }
   if(e.target.closest("#ownReset")){ OWN=null; OWNRES=null; idbPut("own",null).catch(()=>{}); setArr("clubs",[]); save(); resetSend(); renderForm(); return; }

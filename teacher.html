@@ -349,7 +349,7 @@ if(KEY) login(); else $("pw").focus();
 })();
 </script>
 
-<script src="school-kit.js?v=5"></script>
+<script src="school-kit.js?v=6"></script>
 <script>
 (function(){
 const API="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -380,18 +380,18 @@ $("regAnalyze").addEventListener("click",async()=>{
       msg("✅ "+UP.school+" 로고를 저장했어요. 학생 보고서 첫 쪽에 들어가요."); loadList(); }catch(e){ msg("로고를 저장하지 못했어요: "+(e.message||e),true); }
     return; }
   LOGO=UP.logo?await SchoolKit.logoDataUrl(UP.logo):"";
-  $("regAnalyze").disabled=true; $("regSave").hidden=true; $("regEditor").innerHTML="";
+  $("regAnalyze").disabled=true; $("regSave").hidden=true; $("regEditor").innerHTML=""; SchoolKit.awake(true);
   try{ msg("도구 불러오는 중…"); await SchoolKit.loadLibs();
     RES=await SchoolParse.analyze(UP.files,s=>msg(s));
     $("regEditor").innerHTML=SchoolKit.editorHtml({ev:RES.ev,clubs:RES.clubs,feat:[]},RES); SchoolKit.bindEditor($("regEditor"));
     $("regSave").hidden=false; msg("정리했어요. 아래 내용을 확인·수정한 뒤 저장하세요. (원본 평가계획 "+RES.evDocs.length+"개 · 특색사업 "+RES.featDocs.length+"개 파일)");
   }catch(e){ msg("정리하지 못했어요: "+(e.message||e),true); }
-  finally{ $("regAnalyze").disabled=false; }
+  finally{ $("regAnalyze").disabled=false; SchoolKit.awake(false); }
 });
 async function post(body){ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}); const j=await r.json(); if(!j.ok) throw new Error(j.error==="password"?"비밀번호가 맞지 않아요":j.error||"저장 실패"); }
 $("regSave").addEventListener("click",async()=>{
   if(!RES) return; const ed=SchoolKit.readEditor($("regEditor").querySelector("[data-editor]"));
-  $("regSave").disabled=true; $("regProg").hidden=false; const bar=$("regProg").firstElementChild;
+  $("regSave").disabled=true; $("regProg").hidden=false; const bar=$("regProg").firstElementChild; SchoolKit.awake(true);
   try{
     const pd=await SchoolKit.buildPdfs(RES,UP.school,UP.year,s=>{msg(s); const m=s.match(/\((\d+)\/(\d+)\)/); if(m) bar.style.width=(m[1]/m[2]*100)+"%";});
     const data={school:UP.school,year:UP.year,...ed,logo:LOGO||"",evPages:pd.ev?pd.ev.pages:0,featPages:pd.ft?pd.ft.pages:0,evToc:pd.ev?pd.ev.toc:[],featToc:pd.ft?pd.ft.toc:[]};
@@ -403,7 +403,7 @@ $("regSave").addEventListener("click",async()=>{
     msg("✅ "+UP.school+" ("+UP.year+") 저장했어요. 학생 페이지 학교 목록에 나와요. (평가계획 원본 "+data.evPages+"쪽, 특색사업 원본 "+data.featPages+"쪽)");
     loadList();
   }catch(e){ msg("저장하지 못했어요: "+(e.message||e)+" · 인터넷 연결을 확인하고 다시 눌러 주세요. 계속 안 되면 평가계획 파일을 과목별로 나눠 2번에 걸쳐 등록하지 말고, 1학년 1학기 파일만 골라 올려 보세요.",true); }
-  finally{ $("regSave").disabled=false; $("regProg").hidden=true; bar.style.width="0"; }
+  finally{ $("regSave").disabled=false; $("regProg").hidden=true; bar.style.width="0"; SchoolKit.awake(false); }
 });
 })();
 </script>
