@@ -327,6 +327,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
     <div class="mbtns">
       <button class="btn" id="doneOk" type="button">확인</button>
       <button class="btn primary" id="doneShare" type="button">내 PDF 받기 (원본 포함)</button>
+      <button class="btn" id="doneSend" type="button" hidden>💬 카톡·공유로 보내기</button>
     </div>
   </div>
 </div>
@@ -344,7 +345,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="school-data.js?v=5"></script>
 <script src="school-kit.js?v=4"></script>
-<script src="submit-kit.js?v=1"></script>
+<script src="submit-kit.js?v=2"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -789,10 +790,11 @@ async function assemblePlan(headDoc,planStr,evDoc,ftDoc){
   out.getPages().forEach((pg,i)=>{ if(i===0) return; const t=(i+1)+" / "+N, w=font.widthOfTextAtSize(t,9), sz=pg.getSize();
     pg.drawRectangle({x:sz.width/2-w/2-6,y:3,width:w+12,height:13,color:PDFLib.rgb(1,1,1),opacity:0.85});
     pg.drawText(t,{x:sz.width/2-w/2,y:6.5,size:9,font,color:PDFLib.rgb(0.35,0.35,0.35)}); });
-  return new Blob([await out.save()],{type:"application/pdf"});
+  const res=new Blob([await out.save()],{type:"application/pdf"}); res.__pages=N; return res;
 }
 /* 학생이 갖고 다닐 전체 PDF (원본 붙임) — 카톡·저장할 때만 만들어요 */
 async function buildFull(){
+  const lastPdf=window.__LP||null; if(!lastPdf) throw new Error("none");
   if(lastPdf.full) return lastPdf.full;
   statusEl.textContent="학교 원본 자료를 불러오는 중…";
   let evDoc=null, ftDoc=null, docOk=true;
@@ -800,20 +802,53 @@ async function buildFull(){
   try{ const b=await getDocBytes(cur(),"feat"); if(b) ftDoc=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){ docOk=false; }
   statusEl.textContent="원본을 과목별로 끼워 넣고 쪽 번호를 넣는 중…";
   let blob=lastPdf.blob;
-  try{ const head=await PDFLib.PDFDocument.load(await lastPdf.blob.arrayBuffer()); blob=await assemblePlan(head,lastPdf.plan,evDoc,ftDoc); }catch(e){ docOk=false; }
+  try{ const head=await PDFLib.PDFDocument.load(await lastPdf.blob.arrayBuffer()); blob=await assemblePlan(head,lastPdf.plan,evDoc,ftDoc); lastPdf.pages=blob.__pages||0; }catch(e){ docOk=false; }
   lastPdf.full=blob; lastPdf.docOk=docOk;
   statusEl.textContent=docOk?"내 PDF 완성! (학교 원본 포함)":"내 PDF 완성! (학교 원본은 불러오지 못했어요)";
   return blob;
 }
+/* 내 PDF: 제출이 끝나면 바로 뒤에서 만들기 시작 → 다 되면 버튼을 눌러 저장 (오래 걸린 뒤 자동 저장은 핸드폰이 막아요) */
+function estSec(){ const s=cur(); const mb=(s&&s.mb)||((s&&s.pages)||60)/40; return Math.max(10,Math.round(8+mb*7)); }
+function prepFull(){ const L=lastPdf; if(!L||!L.plan) return null; if(L.full) return Promise.resolve(L.full);
+  if(!L.prep){ window.__LP=L; L.prep=buildFull(); L.prep.catch(()=>{ L.prep=null; }); } return L.prep; }
+function canShareFiles(){ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File([new Blob(["x"])],"a.pdf",{type:"application/pdf"})]})); }catch(e){ return false; } }
+function mbOf(b){ return (b.size/1048576).toFixed(1)+"MB"; }
+let pdfTimer=null;
+function openPdfModal(afterSubmit,label){
+  const L=lastPdf; if(!L) return;
+  const m=document.getElementById("doneModal"), bs=document.getElementById("doneShare"), bsend=document.getElementById("doneSend"), tx=document.getElementById("doneText");
+  const who=label?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n":"";
+  document.getElementById("doneIcon").textContent=afterSubmit?"✅":"📄";
+  document.getElementById("doneTitle").textContent=afterSubmit?"제출 완료!":"내 PDF 만들기";
+  const head=afterSubmit?who+"고등학교 조사 보고서가 선생님께 제출됐어요.\n(고쳐서 다시 내면 마지막 것으로 바뀌어요)\n\n":"";
+  const ready=()=>{ if(pdfTimer){clearInterval(pdfTimer);pdfTimer=null;}
+    bs.disabled=false; bs.dataset.act="save"; bs.textContent="📥 파일로 저장"; bsend.hidden=!canShareFiles();
+    tx.textContent=head+"✅ 원본까지 들어간 내 PDF가 준비됐어요!\n"+L.name+(L.pages?" · "+L.pages+"쪽":"")+" · "+mbOf(L.full)+"\n\n아래 버튼을 눌러 저장하세요.\n핸드폰: 내 파일 → 다운로드 폴더에 저장돼요."; };
+  bs.hidden=false; m.hidden=false;
+  if(!L.plan&&!L.full){ L.full=L.blob; }
+  if(L.full){ ready(); bs.focus(); return; }
+  const est=estSec(), t0=Date.now();
+  bs.disabled=true; bs.dataset.act=""; bsend.hidden=true;
+  const tick=()=>{ const left=Math.round(est-(Date.now()-t0)/1000);
+    bs.textContent=left>0?"⏳ 만드는 중… 약 "+left+"초":"⏳ 거의 다 됐어요…";
+    tx.textContent=head+"📄 원본까지 들어간 ‘내 PDF’를 만들고 있어요.\n보통 "+est+"초쯤 걸려요"+(left>0?" (약 "+left+"초 남음)":" (조금만 더 기다려 주세요)")+".\n\n다 되면 아래 버튼이 켜져요.\n이 창을 닫거나 화면을 끄지 말고 기다려 주세요."; };
+  if(pdfTimer) clearInterval(pdfTimer); tick(); pdfTimer=setInterval(tick,1000); SubmitKit.awake(true);
+  prepFull().then(()=>{ SubmitKit.awake(false); if(lastPdf===L) ready(); })
+   .catch(()=>{ SubmitKit.awake(false); if(pdfTimer){clearInterval(pdfTimer);pdfTimer=null;} bs.disabled=false; bs.dataset.act="retry"; bs.textContent="다시 만들기";
+     tx.textContent=head+"⚠️ 내 PDF를 만들지 못했어요. 인터넷 연결을 확인하고 ‘다시 만들기’를 눌러 주세요."; });
+}
+async function shareFile(blob,name){
+  let file=null; try{ file=new File([blob],name,{type:"application/pdf"}); }catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:name}); statusEl.textContent="보냈어요! 카톡이 안 보였다면 '파일로 저장'을 누른 뒤 카톡에 첨부하세요."; return; }
+    catch(e){ if(e&&e.name==="AbortError"){ statusEl.textContent="공유를 닫았어요. '파일로 저장'을 눌러도 돼요."; return; } }
+  }
+  download(blob,name);
+}
 async function myPdf(fn){
   if(!lastPdf) return;
   if(lastPdf.full) return fn(lastPdf.full,lastPdf.name);
-  if(!lastPdf.plan){ return fn(lastPdf.blob,lastPdf.name); }
-  pdfBtn.disabled=true; saveBtn.disabled=true;
-  SubmitKit.show("학교 원본 자료를 과목별로 끼워 넣어 내가 갖고 다닐 PDF를 만들어요.\n10~30초쯤 걸려요.",statusEl);
-  try{ const b=await buildFull(); SubmitKit.hide(); await fn(b,lastPdf.name); }
-  catch(e){ SubmitKit.hide(); statusEl.textContent="PDF를 만들지 못했어요. 다시 눌러 주세요."; }
-  finally{ pdfBtn.disabled=false; saveBtn.disabled=false; }
+  openPdfModal(false);
 }
 
 pdfBtn.addEventListener("click",async()=>{
@@ -867,10 +902,15 @@ function showDone(ok,label){
   document.getElementById("doneTitle").textContent=ok?"제출 완료!":"제출하지 못했어요";
   document.getElementById("doneText").textContent=ok?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n고등학교 조사 보고서가 선생님께 제출됐어요.\n고쳐서 다시 제출하면 마지막에 낸 것으로 바뀌어요.\n\n평가계획·특색사업 원본까지 붙은 ‘내 PDF’는\n아래 버튼으로 받아서 갖고 다니세요.":"인터넷 연결을 확인하고\n아래 '다시 제출' 버튼을 눌러 주세요.";
   document.getElementById("doneShare").hidden=!ok;
+  document.getElementById("doneSend").hidden=true;
   m.hidden=false; document.getElementById(ok?"doneShare":"doneOk").focus();
 }
 document.getElementById("doneOk").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true;});
-document.getElementById("doneShare").addEventListener("click",()=>{document.getElementById("doneModal").hidden=true; myPdf(deliver);});
+document.getElementById("doneShare").addEventListener("click",()=>{ const b=document.getElementById("doneShare");
+  if(b.dataset.act==="save"&&lastPdf&&lastPdf.full){ download(lastPdf.full,lastPdf.name); document.getElementById("doneText").textContent+="\n\n💾 저장했어요! (다운로드 폴더)"; }
+  else if(b.dataset.act==="retry"){ openPdfModal(false); } });
+document.getElementById("doneSend").addEventListener("click",()=>{ if(lastPdf&&lastPdf.full) shareFile(lastPdf.full,lastPdf.name); });
+document.getElementById("doneOk").addEventListener("click",()=>{ if(pdfTimer){clearInterval(pdfTimer);pdfTimer=null;} });
 
 function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});}
 const QKEY="school_submit";
@@ -882,7 +922,7 @@ async function submitToTeacher(){
   const ok=await SubmitKit.post(SUBMIT_URL,QKEY,label,lastPdf.blob,statusEl);
   SubmitKit.hide(); SubmitKit.mark(QKEY,false);
   if(ok){
-    lastPdf.submitted=true; showDone(true,label);
+    lastPdf.submitted=true; openPdfModal(true,label);
     statusEl.textContent="✅ 선생님께 제출 완료! 원본까지 붙은 내 PDF는 '내 PDF 저장' 또는 노란 버튼으로 받으세요.";
   }else{
     submitBtn.hidden=false;

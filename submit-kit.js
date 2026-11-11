@@ -73,5 +73,21 @@
   function mark(key,on){ try{ on?localStorage.setItem(key+"_busy",String(Date.now())):localStorage.removeItem(key+"_busy"); }catch(e){} }
   function wasBusy(key){ try{ const t=+localStorage.getItem(key+"_busy"); return t&&Date.now()-t<6*3600e3; }catch(e){ return false; } }
 
+  /* 카카오톡·인스타 등 앱 안 브라우저: PDF 저장이 막혀 있어서 바깥 브라우저로 열도록 안내 */
+  (function(){
+    const ua=navigator.userAgent||"";
+    const kakao=/KAKAOTALK/i.test(ua), other=/Instagram|FBAN|FBAV|Line\/|NAVER\(inapp|everytimeApp|DaumApps|SamsungBrowser\/.*CrossApp/i.test(ua);
+    if(!kakao&&!other) return;
+    const st=document.createElement("style");
+    st.textContent='.iab{position:sticky;top:0;z-index:9998;background:#fee500;color:#1d1d1d;padding:12px 14px;font-size:14.5px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.15)}.iab b{display:block;font-size:15.5px}.iab a,.iab button{display:inline-block;margin-top:8px;background:#1d1d1d;color:#fff;border:0;border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;text-decoration:none}';
+    document.head.appendChild(st);
+    const bar=document.createElement("div"); bar.className="iab"; bar.setAttribute("role","alert");
+    const url=location.href.split("#")[0];
+    bar.innerHTML='<b>⚠️ 카카오톡 안에서 열면 PDF 저장이 안 될 수 있어요</b>크롬·사파리·삼성 인터넷으로 열어서 써 주세요. (여기서 쓴 내용은 다른 브라우저로 넘어가지 않아요)<br>'+
+      (kakao?'<a href="kakaotalk://web/openExternal?url='+encodeURIComponent(url)+'">다른 브라우저로 열기</a>':'<button type="button">주소 복사하기</button> <span style="font-size:13px">→ 오른쪽 위 ⋮ 메뉴에서 ‘다른 브라우저로 열기’를 눌러도 돼요</span>');
+    const put=()=>{ document.body.insertBefore(bar,document.body.firstChild); const b=bar.querySelector("button"); if(b) b.onclick=()=>{ try{ navigator.clipboard.writeText(url); b.textContent="복사했어요!"; }catch(e){ prompt("이 주소를 복사하세요",url); } }; };
+    if(document.body) put(); else document.addEventListener("DOMContentLoaded",put);
+  })();
+
   window.SubmitKit={show,hide,sizeMsg,post,pending,clear,awake,mark,wasBusy};
 })();
