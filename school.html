@@ -381,6 +381,8 @@ const KEY="fermat-school-report-v1";
 let S={v:{},ph:{}};
 try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&o.v) S={v:o.v||{},ph:{}};}}catch(e){}
 let saveT=null, dirty=false, phDirty=false, DEMO=false;
+const RENDER=location.hash==="#render"; // 선생님 페이지가 보고서 쪽을 대신 만들 때 (저장·제출 안 함)
+if(RENDER){ DEMO=true; S={v:{},ph:{}}; }
 const statusEl=document.getElementById("status");
 const idb=(()=>{let p=null;return ()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open("fermat-school-report",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}));})();
 function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);}));}
@@ -486,6 +488,7 @@ function docLink(s,which){ const pages=which==="ev"?s.pages:s.fpages; if(!pages)
   const label=which==="ev"?'📄 '+esc(s.name)+' 1학년 1학기 평가계획 원본 열기':'📄 특색사업 원본 열기', st=which==="ev"?'':' style="background:#b8860b"';
   if(s.src==="builtin") return '<a class="doclink"'+st+' href="'+esc(which==="ev"?s.doc:s.fdoc)+'" target="_blank" rel="noopener">'+label+' <small>('+pages+'쪽 · PDF)</small></a>';
   return '<button type="button" class="doclink"'+st+' data-opendoc="'+which+'" style="border:0;cursor:pointer;font:inherit;font-weight:700;'+(which==="ev"?'':'background:#b8860b')+'">'+label+' <small>('+pages+'쪽 · PDF)</small></button>'; }
+document.addEventListener("toggle",e=>{ const t=e.target; if(t&&t.classList&&t.classList.contains("aguide")&&t.open) t.querySelectorAll("img[data-src]").forEach(i=>{ i.src=i.dataset.src; i.removeAttribute("data-src"); }); },true);
 function aliGuide(open){
   const st=[
    ["g1","학교알리미 접속 → 학교 검색","<b>schoolinfo.go.kr</b>에 들어가 맨 위 검색창에 학교 이름(예: 인제고등학교)을 쓰고 돋보기를 눌러요."],
@@ -500,7 +503,7 @@ function aliGuide(open){
   ];
   return '<details class="aguide"'+(open?' open':'')+'><summary>📷 학교알리미에서 파일 받는 방법 (사진으로 보기)<span class="arrow" aria-hidden="true">▼</span></summary><div class="ag-body">'+
    '<p class="note">컴퓨터에서 하면 가장 편해요. 휴대폰으로 받으면 파일은 <b>내 파일 → 다운로드</b> 폴더에 저장돼요. 새 학년도 1차 공시는 보통 <b>4월 말</b>에 올라와서, 그 전에는 작년 자료만 있을 수 있어요.</p>'+
-   st.map((x,i)=>'<figure class="ag-step"><figcaption><span class="ag-n">'+(i+1)+'</span><b>'+x[1]+'</b><br>'+x[2]+'</figcaption><a href="guide/'+x[0]+'.jpg?v=1" target="_blank" rel="noopener" title="크게 보기"><img src="guide/'+x[0]+'.jpg?v=1" alt="'+x[1]+' 화면" loading="lazy"></a></figure>').join("")+
+   st.map((x,i)=>'<figure class="ag-step"><figcaption><span class="ag-n">'+(i+1)+'</span><b>'+x[1]+'</b><br>'+x[2]+'</figcaption><a href="guide/'+x[0]+'.jpg?v=1" target="_blank" rel="noopener" title="크게 보기"><img '+(open?'src':'data-src')+'="guide/'+x[0]+'.jpg?v=1" alt="'+x[1]+' 화면"></a></figure>').join("")+
    '<p class="pguide">받은 파일을 아래 칸에 넣어요: <b>평가계획</b> → 평가계획 칸(여러 개 한꺼번에 선택 가능), <b>동아리 운영계획서</b> → 동아리 칸, <b>특색사업</b> → 특색사업 칸. hwp·hwpx·pdf·xlsx 모두 돼요. (사진을 누르면 크게 보여요)</p>'+
    '</div></details>';
 }
@@ -767,26 +770,43 @@ function layout(){
   return {H,plan,P};
 }
 
-/* 화면 쪽들을 그림으로 찍기 */
+/* 화면 쪽들을 그림으로 찍기 — 그 쪽만 따로 떼어 찍고(다른 화면 요소는 건너뜀), 멈추면 시간 초과로 끊음 */
 async function snap(htmlList,label,scale,q){
   const stage=document.getElementById("pdfStage"); stage.innerHTML=htmlList.join("");
-  if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-  await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
-  const out=[], pages=[...stage.children];
-  for(let i=0;i<pages.length;i++){
-    statusEl.textContent=label+" ("+(i+1)+"/"+pages.length+"쪽)";
-    const cv=await html2canvas(pages[i],{scale,backgroundColor:"#ffffff",useCORS:true,logging:false});
-    out.push({jp:cv.toDataURL("image/jpeg",q),ratio:cv.height/cv.width});
-  }
-  stage.innerHTML=""; return out;
+  if(document.fonts&&document.fonts.ready) await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,4000))]);
+  await Promise.all([...stage.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,5000);})));
+  const out=[], pages=[...stage.children], TO=window.__SNAP_TO||[20000,15000];
+  try{
+    for(let i=0;i<pages.length;i++){
+      if(label) statusEl.textContent=label+" ("+(i+1)+"/"+pages.length+"쪽)";
+      const pg=pages[i];
+      const keep=el=>el===pg||el.contains(pg)||pg.contains(el)||!document.body.contains(el)||el===document.body;
+      const cv=await Promise.race([
+        html2canvas(pg,{scale,backgroundColor:"#ffffff",useCORS:true,logging:false,imageTimeout:5000,ignoreElements:el=>!keep(el)}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error("snap-timeout")),TO[i?1:0]))]);
+      out.push({jp:cv.toDataURL("image/jpeg",q),ratio:cv.height/cv.width}); cv.width=cv.height=0;
+    }
+  } finally { stage.innerHTML=""; }
+  return out;
 }
+/* 이 기기에서 쪽 그림을 못 만들 때: 내용만 담은 작은 PDF (선생님 페이지가 완성본으로 만들어 줌) */
+async function dataPdf(meta){
+  const d=await PDFLib.PDFDocument.create(), pg=d.addPage([595,842]), f=await d.embedFont(PDFLib.StandardFonts.Helvetica);
+  pg.drawText("Fermat - School Report (data only)",{x:50,y:760,size:18,font:f});
+  pg.drawText("Open this submission on the teacher page to build the full report.",{x:50,y:732,size:11,font:f});
+  d.setTitle("School report"); d.setKeywords(["FERMAT_SCHOOL:"+encodeURIComponent(JSON.stringify(meta))]);
+  return new Blob([await d.save()],{type:"application/pdf"});
+}
+function studentData(){ const s=cur(), d={grade:val("grade"),cls:val("cls"),name:val("name"),school:val("school"),clubs:arr("clubs")};
+  if(s&&s.src==="own"){ const o=Object.assign({},s); if((o.logo||"").length>80000) o.logo=""; d.own=o; }
+  return d; }
 /* 선생님 페이지가 원본을 붙일 수 있게 어느 학교 자료인지 + 쪽 배치를 PDF 속성에 적어 둠 */
 function schoolMeta(plan){ const s=cur(); if(!s) return null; let m=null;
   if(s.src==="builtin") m={src:"b",doc:s.doc||"",fdoc:s.fdoc||""};
   else if(s.src==="remote") m={src:"r",ev:s.evalId||"",ft:s.featId||""};
   else if(s.src==="own"&&OWNIDS) m={src:"r",ev:OWNIDS.ev||"",ft:OWNIDS.feat||""};
   else m={src:"o"};
-  m.name=String(s.name||"").replace(/\s+/g,""); m.plan=plan.map(x=>x.h!=null?x.h:(x.ev?"e"+x.ev[0]+"-"+x.ev[1]:"f"+x.ft[0]+"-"+x.ft[1])).join(",");
+  m.name=String(s.name||"").replace(/\s+/g,""); m.d={grade:val("grade"),cls:val("cls"),name:val("name"),school:val("school"),clubs:arr("clubs")}; m.plan=plan.map(x=>x.h!=null?x.h:(x.ev?"e"+x.ev[0]+"-"+x.ev[1]:"f"+x.ft[0]+"-"+x.ft[1])).join(",");
   return m; }
 function shotsToPdf(shots,meta){
   const {jsPDF}=window.jspdf; let pdf=null;
@@ -797,7 +817,7 @@ function shotsToPdf(shots,meta){
 /* 그림 쪽 + 원본을 plan 순서대로 합치고 쪽 번호 넣기 (선생님 페이지와 같은 방식) */
 async function assemblePlan(headDoc,planStr,evDoc,ftDoc){
   const out=await PDFLib.PDFDocument.create();
-  const heads=await out.copyPages(headDoc,headDoc.getPageIndices());
+  const heads=headDoc.getPageCount()?await out.copyPages(headDoc,headDoc.getPageIndices()):[];
   const evP=evDoc?await out.copyPages(evDoc,evDoc.getPageIndices()):[], ftP=ftDoc?await out.copyPages(ftDoc,ftDoc.getPageIndices()):[];
   String(planStr).split(",").forEach(t=>{
     if(/^\d+$/.test(t)){ if(heads[+t]) out.addPage(heads[+t]); return; }
@@ -820,7 +840,9 @@ async function buildFull(){
   try{ const b=await getDocBytes(cur(),"feat"); if(b) ftDoc=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){ docOk=false; }
   statusEl.textContent="원본을 과목별로 끼워 넣고 쪽 번호를 넣는 중…";
   let blob=lastPdf.blob;
-  try{ const head=await PDFLib.PDFDocument.load(await lastPdf.blob.arrayBuffer()); blob=await assemblePlan(head,lastPdf.plan,evDoc,ftDoc); lastPdf.pages=blob.__pages||0; }catch(e){ docOk=false; }
+  try{ const head=lastPdf.dataOnly?await PDFLib.PDFDocument.create():await PDFLib.PDFDocument.load(await lastPdf.blob.arrayBuffer());
+    if(lastPdf.dataOnly&&!evDoc&&!ftDoc) throw new Error("nodoc");
+    blob=await assemblePlan(head,lastPdf.plan,evDoc,ftDoc); lastPdf.pages=blob.__pages||0; }catch(e){ docOk=false; }
   lastPdf.full=blob; lastPdf.docOk=docOk;
   statusEl.textContent=docOk?"내 PDF 완성! (학교 원본 포함)":"내 PDF 완성! (학교 원본은 불러오지 못했어요)";
   return blob;
@@ -838,7 +860,8 @@ function openPdfModal(afterSubmit,label){
   const who=label?label.replace(/^.*?__/,"").replace(/^\d+학년_/,"").replace(/_/g," ")+"\n":"";
   document.getElementById("doneIcon").textContent=afterSubmit?"✅":"📄";
   document.getElementById("doneTitle").textContent=afterSubmit?"제출 완료!":"내 PDF 만들기";
-  const head=afterSubmit?who+"고등학교 조사 보고서가 선생님께 제출됐어요.\n(고쳐서 다시 내면 마지막 것으로 바뀌어요)\n\n":"";
+  const head=(afterSubmit?who+"고등학교 조사 보고서가 선생님께 제출됐어요.\n(고쳐서 다시 내면 마지막 것으로 바뀌어요)\n\n":"")+
+    (L.dataOnly?"ℹ️ 이 핸드폰에서는 표지·요약 쪽을 만들 수 없어서 내용만 보냈어요. 선생님 쪽에서는 완성본으로 만들어져요.\n아래 ‘내 PDF’에는 학교 원본 자료만 들어 있어요. 완성본은 컴퓨터에서 다시 제출하면 받을 수 있어요.\n\n":"");
   const ready=()=>{ if(pdfTimer){clearInterval(pdfTimer);pdfTimer=null;}
     bs.disabled=false; bs.dataset.act="save"; bs.textContent="📥 파일로 저장"; bsend.hidden=!canShareFiles();
     tx.textContent=head+"✅ 원본까지 들어간 내 PDF가 준비됐어요!\n"+L.name+(L.pages?" · "+L.pages+"쪽":"")+" · "+mbOf(L.full)+"\n\n아래 버튼을 눌러 저장하세요.\n핸드폰: 내 파일 → 다운로드 폴더에 저장돼요."; };
@@ -884,12 +907,16 @@ pdfBtn.addEventListener("click",async()=>{
   try{
     OWNIDS=null;
     if(cur().src==="own"){ statusEl.textContent="학교 원본을 선생님 제출함에 올리는 중… (처음 한 번만)"; try{ OWNIDS=await ownDocIds(); }catch(e){ OWNIDS=null; } }
-    const L=layout();
-    const shots=await snap(L.H,"보고서 만드는 중…",1.4,0.78);
-    const meta=schoolMeta(L.plan);
+    const L=layout(); const meta=schoolMeta(L.plan);
+    let lite=false; try{ lite=Date.now()-(+localStorage.getItem(QKEY+"_lite")||0)<86400000; }catch(e){}
+    let shots=null;
+    if(!lite){ try{ shots=await snap(L.H,"보고서 만드는 중…",1.4,0.78); }catch(e){ shots=null; try{ localStorage.setItem(QKEY+"_lite",String(Date.now())); }catch(_){} } }
     const nm=(val("name")||"학생").replace(/[\\/:*?"<>|]/g,"").trim()||"학생";
     const sn=String(cur().name||"").replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"");
-    lastPdf={blob:shotsToPdf(shots,meta),name:nm+"_"+(sn||"고등학교조사")+".pdf",shots:shots.map(x=>x.jp),docOk:true,plan:meta.plan,full:null};
+    if(shots) lastPdf={blob:shotsToPdf(shots,meta),name:nm+"_"+(sn||"고등학교조사")+".pdf",shots:shots.map(x=>x.jp),docOk:true,plan:meta.plan,full:null};
+    else{ statusEl.textContent="이 기기에서는 쪽 그림을 만들기 어려워서, 내용만 바로 보내요…";
+      meta.lite=1; meta.d=studentData();
+      lastPdf={blob:await dataPdf(meta),name:nm+"_"+(sn||"고등학교조사")+"_학교원본.pdf",shots:[],docOk:true,plan:meta.plan,full:null,dataOnly:true}; }
     pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     sent=true; await submitToTeacher();
   }catch(e){ statusEl.textContent="PDF를 만들지 못했어요. 새로고침한 뒤 다시 해 보세요."; }
@@ -949,16 +976,17 @@ async function submitToTeacher(){
 }
 /* 화면이 잠기거나 창이 닫혀 다 못 보낸 제출 이어 보내기 */
 (async()=>{
+  if(RENDER) return;
   const p=await SubmitKit.pending(QKEY);
   if(p&&p.blob){
-    let plan=null, sn=""; try{ const d=await PDFLib.PDFDocument.load(await p.blob.arrayBuffer(),{updateMetadata:false}); const mt=String(d.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(mt){ const mm=JSON.parse(decodeURIComponent(mt[1])); plan=mm.plan||null; sn=mm.name||""; } }catch(e){}
-    lastPdf={blob:p.blob,name:((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+"_"+(sn||"고등학교조사")+".pdf",shots:[],docOk:true,label:p.label,plan,full:null};
+    let plan=null, sn="", lite=false; try{ const d=await PDFLib.PDFDocument.load(await p.blob.arrayBuffer(),{updateMetadata:false}); const mt=String(d.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(mt){ const mm=JSON.parse(decodeURIComponent(mt[1])); plan=mm.plan||null; sn=mm.name||""; lite=!!mm.lite; } }catch(e){}
+    lastPdf={blob:p.blob,name:((p.label.match(/_([^_]+)$/)||[])[1]||"학생")+"_"+(sn||"고등학교조사")+".pdf",shots:[],docOk:true,label:p.label,plan,full:null,dataOnly:lite};
     pdfBtn.textContent="카톡으로 보내기 (원본 포함)"; pdfBtn.dataset.mode="send"; saveBtn.hidden=false;
     statusEl.textContent="지난번에 다 보내지 못한 보고서를 이어서 보내요…";
     await submitToTeacher();
   }else if(SubmitKit.wasBusy(QKEY)){
-    SubmitKit.mark(QKEY,false);
-    statusEl.textContent="⚠️ 지난번 제출이 중간에 멈췄어요. 'PDF 만들고 제출'을 다시 눌러 주세요. (쓴 내용은 그대로 저장돼 있어요)";
+    SubmitKit.mark(QKEY,false); try{ localStorage.setItem(QKEY+"_lite",String(Date.now())); }catch(e){}
+    statusEl.textContent="⚠️ 지난번 제출이 중간에 멈췄어요. 'PDF 만들고 제출'을 다시 누르면 이번에는 간단한 방식으로 바로 보내요. (쓴 내용은 그대로 저장돼 있어요)";
   }
 })();
 submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await submitToTeacher();}finally{submitBtn.disabled=false;}});
@@ -987,7 +1015,16 @@ if(location.hash.indexOf("#demo")===0){
 }
 renderForm();
 idbGet("own").then(o=>{ if(o&&o.name){ OWN=o; if(val("school")===OWNKEY){ renderForm(); ownDocIds().catch(()=>{}); } } }).catch(()=>{});
-loadRemote();
+const remoteReady=loadRemote();
+/* 선생님 페이지용: 학생이 보낸 내용으로 보고서 쪽을 만들어 줌 */
+window.__renderReport=async function(d){
+  await remoteReady;
+  if(d.own) OWN=d.own;
+  S.v={grade:d.grade||"",cls:d.cls||"",name:d.name||"",school:d.own?OWNKEY:d.school,clubs:JSON.stringify(d.clubs||[])};
+  if(!cur()) throw new Error("school");
+  const L=layout(), shots=await snap(L.H,"",1.4,0.78), blob=shotsToPdf(shots,null);
+  return {bytes:new Uint8Array(await blob.arrayBuffer()),plan:schoolMeta(L.plan).plan};
+};
 if(!DEMO) idbGet("photos").then(ph=>{ if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); } }).catch(()=>{});
 if(!DEMO&&Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
 })();

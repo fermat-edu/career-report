@@ -258,6 +258,15 @@ async function origBytes(m,which){
     return docOf(id,async()=>{ const r=await fetch(API+"?action=schooldoc&id="+encodeURIComponent(id)); const j=await r.json(); if(!j.ok) throw new Error("doc"); return b64u8(j.pdf); }); }
   return null;
 }
+/* 학생 페이지를 안 보이게 열어 보고서 쪽을 대신 만들기 (한 번에 하나씩) */
+let RF=null, RQ=Promise.resolve();
+function renderFrame(){ if(!RF) RF=new Promise((res,rej)=>{ const f=document.createElement("iframe");
+    f.setAttribute("aria-hidden","true"); f.tabIndex=-1; f.style.cssText="position:fixed;left:-20000px;top:0;width:900px;height:1200px;border:0;pointer-events:none";
+    f.src="school.html?r="+Date.now()+"#render"; const t0=Date.now();
+    f.onload=()=>{ const iv=setInterval(()=>{ try{ if(f.contentWindow.__renderReport){ clearInterval(iv); res(f.contentWindow); } else if(Date.now()-t0>30000){ clearInterval(iv); RF=null; rej(new Error("frame")); } }catch(e){ clearInterval(iv); RF=null; rej(e); } },200); };
+    document.body.appendChild(f); });
+  return RF; }
+function renderLite(d){ const run=()=>renderFrame().then(w=>w.__renderReport(d)); const p=RQ.then(run,run); RQ=p.catch(()=>{}); return p; }
 async function withOriginals(u8,blob){ let school="";
   const R=b=>({blob:b,school});
   if(!window.PDFLib) return R(blob);
@@ -265,11 +274,14 @@ async function withOriginals(u8,blob){ let school="";
     const mine=await PDFLib.PDFDocument.load(u8,{updateMetadata:false});
     const mt=String(mine.getKeywords()||"").match(/FERMAT_SCHOOL:(\S+)/); if(!mt) return R(blob); // 예전 제출(원본이 이미 들어 있음)
     const m=JSON.parse(decodeURIComponent(mt[1])); school=String(m.name||"").replace(/[\\/:*?"<>|]/g,"");
+    let mine2=mine;
+    if(m.lite&&m.d){ // 학생 핸드폰에서 쪽 그림을 못 만들어 내용만 온 제출 → 여기서 완성본 쪽을 만듦
+      const r=await renderLite(m.d); mine2=await PDFLib.PDFDocument.load(Uint8Array.from(r.bytes)); m.plan=r.plan; }
     const out=await PDFLib.PDFDocument.create(); out.setTitle("고등학교 조사 보고서 (원본 포함)");
     const docs={};
     for(const w of ["ev","ft"]){ try{ const b=await origBytes(m,w); if(b) docs[w]=await PDFLib.PDFDocument.load(b,{ignoreEncryption:true}); }catch(e){} }
-    if(!docs.ev&&!docs.ft) return R(blob);
-    const heads=await out.copyPages(mine,mine.getPageIndices());
+    if(!docs.ev&&!docs.ft&&!m.lite) return R(blob);
+    const heads=await out.copyPages(mine2,mine2.getPageIndices());
     const evP=docs.ev?await out.copyPages(docs.ev,docs.ev.getPageIndices()):[], ftP=docs.ft?await out.copyPages(docs.ft,docs.ft.getPageIndices()):[];
     if(m.plan){ // 과목 첫 쪽 뒤에 그 과목 원본을 끼워 넣기
       String(m.plan).split(",").forEach(t=>{
