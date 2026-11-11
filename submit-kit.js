@@ -14,7 +14,7 @@
 
   /* 진행 알림창 */
   const css=document.createElement("style");
-  css.textContent='.skw{position:fixed;inset:0;z-index:9999;background:rgba(10,20,22,.55);display:flex;align-items:center;justify-content:center;padding:20px}'+
+  css.textContent='.skw{position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(10,20,22,.55);display:flex;align-items:center;justify-content:center;padding:20px}'+
    '.skw[hidden]{display:none}.skw>div{background:#fff;color:#1d2b2d;border-radius:18px;max-width:380px;width:100%;padding:24px 22px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25);font-family:inherit}'+
    '.skw .sp{width:42px;height:42px;margin:0 auto 12px;border:4px solid #d6e6e8;border-top-color:#2f8792;border-radius:50%;animation:skr 1s linear infinite}@keyframes skr{to{transform:rotate(360deg)}}'+
    '.skw h3{margin:0 0 8px;font-size:19px}.skw p{margin:6px 0;font-size:14.5px;line-height:1.55;white-space:pre-line}.skw .st{color:#2f8792;font-weight:700}.skw .tip{color:#6b7b7d;font-size:13px}';

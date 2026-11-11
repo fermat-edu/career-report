@@ -19,6 +19,8 @@
 @supports (-webkit-touch-callout:none){input[type=text],textarea{font-size:16px!important}}
 /* 휴대폰에서 글 쓰는 동안(자판이 올라온 동안)은 아래 막대를 접어 화면을 넓게 */
 body.typing .bar{display:none}
+/* 휴대폰을 가로로 들었을 때: 화면 높이가 낮아서 아래 막대를 한 줄로 얇게 */
+@media (max-height:500px) and (orientation:landscape){.bar{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}.bar-in{gap:6px;flex-wrap:nowrap}.bar-in .status{flex:1 1 auto;min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar-in .btn{font-size:12.5px;padding:6px 10px;min-height:0;white-space:nowrap;flex:0 0 auto}}
 body.typing .wrap{padding-bottom:24px!important}
 .toast{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:60;background:#1f2a2c;color:#fff;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.3);text-align:center}
 </style>
@@ -241,7 +243,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;bo
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="submit-kit.js?v=2"></script>
+<script src="submit-kit.js?v=3"></script>
 <script>
 (function(){
 const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르","데카르트2"];
@@ -494,7 +496,7 @@ form.addEventListener("click",e=>{
   const a=e.target.closest("[data-add]"); if(a){pickFor=a.dataset.add; picker.value=""; picker.click(); return;}
   const d=e.target.closest("[data-del]"); if(d){const id=d.dataset.del; (S.ph[id]||[]).splice(+d.dataset.i,1); refreshPh(id); save(true);}
 });
-picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){statusEl.textContent=BADPH;} } refreshPh(id); save(true);});
+picker.addEventListener("change",async()=>{const id=pickFor; if(!id)return; let bad=0; for(const f of picker.files){ try{ (S.ph[id]=S.ph[id]||[]).push(await shrink(f)); }catch(e){bad++;} } refreshPh(id); if(bad) setTimeout(()=>{statusEl.textContent=BADPH;},400); save(true);});
 const BADPH="⚠️ 열 수 없는 사진이 있었어요. 화면 캡처(스크린샷)나 JPG·PNG 사진으로 올려 주세요. (HEIC 사진은 안 열릴 수 있어요)";
 function refreshPh(id){const box=form.querySelector('[data-ph="'+id+'"]'); if(box) box.outerHTML=photoBox(id,box.classList.contains("photo-big")); else if(id==="s3_shot") refreshUp();}
 function shrink(file,big){return new Promise((res,rej)=>{const r=new FileReader(); r.onerror=rej; r.onload=()=>{const img=new Image(); img.onerror=rej; img.onload=()=>{
@@ -529,7 +531,7 @@ async function handleUpload(fileList){
         if(window.PDFLib){ const d=await PDFLib.PDFDocument.load(buf.slice(0),{ignoreEncryption:true}); pages=d.getPageCount(); }
         PDFS.push({name:f.name,buf,pages}); }
       catch(e){ bad++; }
-    } else if(f.type.startsWith("image/")){
+    } else if((f.type||"").indexOf("image/")===0||/\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(f.name)){
       try{ (S.ph.s3_shot=S.ph.s3_shot||[]).push(await shrink(f,true)); phDirty=true; }catch(e){ bad++; }
     } else bad++;
   }
@@ -788,7 +790,10 @@ submitBtn.addEventListener("click",async()=>{submitBtn.disabled=true; try{await 
 
 function download(blob,name){
   try{ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),30000);
-    statusEl.textContent="다운로드 폴더에 저장했어요. PC 카카오톡 채팅방에 파일을 끌어다 놓으면 보내져요."; }
+    const ua=navigator.userAgent||"";
+    statusEl.textContent=/KAKAOTALK|Instagram|FBAN|NAVER\(inapp/i.test(ua)?"⚠️ 카카오톡 안에서는 파일이 저장되지 않을 수 있어요. 맨 위 노란 줄의 ‘다른 브라우저로 열기’로 크롬·사파리에서 열어 주세요. (선생님께는 이미 제출됐어요)"
+      :IS_MOBILE?"파일로 저장했어요. ‘다운로드’(아이폰은 ‘파일’ 앱)에서 찾아 카카오톡 채팅방에 첨부하세요."
+      :"다운로드 폴더에 저장했어요. PC 카카오톡 채팅방에 파일을 끌어다 놓으면 보내져요."; }
   catch(e){ statusEl.textContent="이 브라우저에서는 저장할 수 없어요. 크롬이나 사파리로 열어 주세요."; }
 }
 

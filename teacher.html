@@ -19,6 +19,8 @@
 @media (prefers-color-scheme: dark){:root{--bg:#141a1b;--paper:#1d2526;--ink:#e7eeee;--muted:#9fb0b2;--line:#36454a;--field:#232d2f;--accent:#6cc3cc;--new:#5fcf96;--old:#748487;color-scheme:dark}}
 html,body{margin:0}
 [hidden]{display:none!important}
+/* 아이폰·아이패드: 글자 칸이 16px보다 작으면 누를 때 화면이 확대됨 */
+@supports (-webkit-touch-callout:none){input[type=password],input[type=search],input[type=text],select,textarea{font-size:16px!important}}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .wrap{max-width:900px;margin:0 auto;padding-block:24px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -144,7 +146,7 @@ async function api(params){
   if(!j.ok) throw new Error(j.error||"fail");
   return j;
 }
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르","데카르트2"]; // 반 순서
 function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
   let base=f.name.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,""), form="진로탐구보고서";
@@ -329,11 +331,12 @@ $("list").addEventListener("click",async e=>{
   if(act==="delYes"){ b.disabled=true; try{ await api({action:"delete",id}); FILES=FILES.filter(x=>x.id!==id); render(); $("msg").className="msg"; $("msg").textContent=f.who+" 파일을 지웠어요. (구글 드라이브 휴지통에서 30일 안에 되살릴 수 있어요)"; }
     catch(_){ $("msg").className="msg err"; $("msg").textContent="지우지 못했어요. 다시 해 주세요."; render(); } return; }
   // 열기: 새 창을 먼저 열어 두어야 팝업 차단을 피할 수 있어요
-  const win=act==="open"?window.open("","_blank"):null;
+  const ANDROID=/Android/i.test(navigator.userAgent||"");   // 안드로이드 브라우저는 새 창에서 PDF를 못 보여 줘서 빈 창만 남음 → 받아서 열기
+  const win=act==="open"&&!ANDROID?window.open("","_blank"):null;
   if(win) win.document.write('<p style="font-family:sans-serif;padding:20px">'+esc(f.who)+' 보고서를 여는 중…</p>');
   b.disabled=true; const old=b.textContent; b.textContent="여는 중…";
   try{ const {blob,name}=await getBlob(id);
-    if(act==="open"){ const u=URL.createObjectURL(blob); if(win) win.location.href=u; else window.open(u,"_blank"); }
+    if(act==="open"&&!ANDROID){ const u=URL.createObjectURL(blob); if(win) win.location.href=u; else { const w2=window.open(u,"_blank"); if(!w2) saveBlob(blob,name); } }
     else saveBlob(blob,name); }
   catch(_){ if(win) win.close(); $("msg").className="msg err"; $("msg").textContent="파일을 가져오지 못했어요. 다시 눌러 주세요."; }
   finally{ b.disabled=false; b.textContent=old; }
@@ -343,11 +346,16 @@ $("list").addEventListener("click",async e=>{
 async function zipFiles(v,label,folders,btn){
   if(!v.length) return;
   if(!window.JSZip){ $("msg").className="msg err"; $("msg").textContent="압축 도구를 불러오지 못했어요. 새로고침 후 다시 해 주세요."; return; }
+  const total=v.reduce((a,f)=>a+(f.size||0),0), mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||"")||(/Macintosh/.test(navigator.userAgent||"")&&navigator.maxTouchPoints>1);
+  if(mobile&&total>150*1048576&&btn.dataset.big!=="1"){ btn.dataset.big="1"; $("msg").className="msg err";
+    $("msg").textContent="⚠️ 모두 "+Math.round(total/1048576)+"MB예요. 휴대폰·태블릿에서는 중간에 멈출 수 있으니 컴퓨터에서 받거나 반별로 받아 주세요. 그래도 받으려면 한 번 더 누르세요."; return; }
+  btn.dataset.big="";
   btn.disabled=true; $("prog").hidden=false; const bar=$("prog").firstElementChild; $("msg").className="msg";
   const zip=new JSZip(); let fail=0;
   for(let i=0;i<v.length;i++){
     $("msg").textContent="파일 모으는 중… ("+(i+1)+"/"+v.length+") "+v[i].cls+" "+v[i].who; bar.style.width=(i/v.length*100)+"%";
-    try{ const {blob,name}=await getBlob(v[i].id); (folders?zip.folder(v[i].cls.replace(/\s/g,"")):zip).file(name,blob); }catch(e){ fail++; }
+    try{ let got; try{ got=await getBlob(v[i].id); }catch(e1){ await new Promise(r=>setTimeout(r,1500)); got=await getBlob(v[i].id); }   // 잠깐 끊긴 경우 한 번 더
+      (folders?zip.folder(v[i].cls.replace(/\s/g,"")):zip).file(got.name,got.blob); }catch(e){ fail++; }
   }
   bar.style.width="100%"; $("msg").textContent="압축하는 중…";
   const zname=(label.indexOf(FORM)===0?"":FORM+"_")+label+".zip";
@@ -367,7 +375,7 @@ if(KEY) login(); else $("pw").focus();
 const API="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
 const $=id=>document.getElementById(id);
 const key=()=>{try{return sessionStorage.getItem("teacherKey")||"";}catch(e){return "";}};
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let RES=null, UP=null, LOGO="";
 $("regUpload").innerHTML=SchoolKit.uploadHtml("regUp");
 const msg=(t,err)=>{$("regMsg").className="msg"+(err?" err":""); $("regMsg").textContent=t;};
