@@ -361,7 +361,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="school-data.js?v=5"></script>
+<script src="school-data.js?v=6"></script>
 <script src="school-kit.js?v=6"></script>
 <script src="submit-kit.js?v=2"></script>
 <script>
@@ -481,11 +481,11 @@ function evCards(s){
      '<div class="evbar" aria-hidden="true"><i class="x1" style="width:'+e.mid+'%"></i><i class="x2" style="width:'+e.fin+'%"></i><i class="xp" style="width:'+t.pf+'%"></i></div>'+
      '<ul class="evl">'+e.p.map(p=>'<li>'+esc(p[0])+' <em>'+fmt(p[1])+'%</em></li>').join("")+'</ul></div>';}).join("")+'</div>';
 }
-function missingSubj(s){ const have=s.ev.map(e=>e.s); return CORE.filter(c=>!have.includes(c)); }
+function missingSubj(s){ const have=s.ev.map(e=>e.s); const k=String(s.sem||1); return CORE.map(c=>c.replace(/1$/,k)).filter(c=>!have.includes(c)); }
 
 /* ---------- 입력 화면 ---------- */
 function docLink(s,which){ const pages=which==="ev"?s.pages:s.fpages; if(!pages) return "";
-  const label=which==="ev"?'📄 '+esc(s.name)+' 1학년 1학기 평가계획 원본 열기':'📄 특색사업 원본 열기', st=which==="ev"?'':' style="background:#b8860b"';
+  const label=which==="ev"?'📄 '+esc(s.name)+' 1학년 '+(s.sem||1)+'학기 평가계획 원본 열기':'📄 특색사업 원본 열기', st=which==="ev"?'':' style="background:#b8860b"';
   if(s.src==="builtin") return '<a class="doclink"'+st+' href="'+esc(which==="ev"?s.doc:s.fdoc)+'" target="_blank" rel="noopener">'+label+' <small>('+pages+'쪽 · PDF)</small></a>';
   return '<button type="button" class="doclink"'+st+' data-opendoc="'+which+'" style="border:0;cursor:pointer;font:inherit;font-weight:700;'+(which==="ev"?'':'background:#b8860b')+'">'+label+' <small>('+pages+'쪽 · PDF)</small></button>'; }
 document.addEventListener("toggle",e=>{ const t=e.target; if(t&&t.classList&&t.classList.contains("aguide")&&t.open) t.querySelectorAll("img[data-src]").forEach(i=>{ i.src=i.dataset.src; i.removeAttribute("data-src"); }); },true);
@@ -522,10 +522,10 @@ function renderForm(){
   h+=section("01.","희망 학교","c-coral",p1);
   if(s){
     const miss=missingSubj(s);
-    let p2='<div class="pguide"><b>고1 1학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s,"ev")+evCards(s)+
+    let p2='<div class="pguide"><b>고1 '+(s.sem||1)+'학기 성적은 이렇게 매겨요.</b> 과목마다 <b>지필시험(중간·기말)</b>과 <b>수행평가</b>를 합쳐 100점이에요. 아래는 한눈에 보는 요약이고, 수행평가 과제·채점 기준·시기 같은 자세한 내용은 <b>원본 평가계획</b>에 그대로 있어요. 원본은 제출하는 PDF 뒤에 자동으로 붙어요.</div>'+docLink(s,"ev")+evCards(s)+
       (miss.length?'<p class="note">※ 이 학교에서 받은 자료에는 '+esc(miss.join(", "))+' 평가계획이 없어요. 학교알리미(schoolinfo.go.kr)나 학교 홈페이지에서 확인하세요.</p>':'');
     p2+=docLink(s,"feat");
-    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,s.year+"학년도 1학기 기준");
+    h+=section("02.","1학년 과목별 평가 방법","c-green",p2,s.year+"학년도 "+(s.sem||1)+"학기 기준"+(s.sem===2?" (1학기 자료가 아직 없어 2학기 계획으로 넣었어요)":""));
     const picked=arr("clubs");
     let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 학교 운영계획서에 있는 활동 목적과 연간 활동이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요.'+
       (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요. 활동 내용은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
@@ -707,7 +707,7 @@ function layout(){
   const addR=(kind,a,b)=>{ plan.push({[kind]:[a,b]}); const st=n+1; n+=b-a+1; return st; };
   // 1 표지
   addH("cover",'<div class="pp cover2">'+(s.logo?'<img class="logo" src="'+s.logo+'" alt="">':'<div class="logo ph">🏫</div>')+
-    '<div class="sch">'+esc(s.name)+'</div><div class="ttl">고등학교 조사 보고서</div><div class="yr">'+Y+'학년도 1학년 1학기 · 평가 방법 · 동아리 · 특색사업</div>'+
+    '<div class="sch">'+esc(s.name)+'</div><div class="ttl">고등학교 조사 보고서</div><div class="yr">'+Y+'학년도 1학년 '+(s.sem||1)+'학기 · 평가 방법 · 동아리 · 특색사업</div>'+
     '<table class="whobox"><tr><th>학년</th><td>'+esc(c.G)+'학년</td></tr><tr><th>반</th><td>'+esc(c.full)+'</td></tr><tr><th>이름</th><td>'+T("name")+'</td></tr></table>'+
     '<div class="brand"><b>Fermat</b> education</div></div>');
   const tocIdx=addH("toc","");
@@ -748,7 +748,7 @@ function layout(){
   if(ftN) P.ftStart=addR("ft",1,ftN);
   P.total=n;
   // 첫 쪽들 채우기 (쪽 번호가 정해진 뒤)
-  H[evIdx]='<div class="pp sec">'+secHead("02","과목별 평가 방법","#1f5c2b",Y+"학년도 1학년 1학기 · 지필(중간·기말) + 수행평가 = 100%")+'<div class="pbody">'+
+  H[evIdx]='<div class="pp sec">'+secHead("02","과목별 평가 방법","#1f5c2b",Y+"학년도 1학년 "+(s.sem||1)+"학기 · 지필(중간·기말) + 수행평가 = 100%")+'<div class="pbody">'+
     (subjRows.length?'<div class="jump">'+subjRows.map((r,i)=>'<span style="border-color:'+SUBJ_COL[i%SUBJ_COL.length]+'"><b>'+esc(r[0])+'</b> '+r[1]+'쪽</span>').join("")+'</div>':'')+
     evTable(s)+(miss.length&&(s.ev||[]).length?'<p class="src">※ 요약표에 없는 과목: '+esc(miss.join(", "))+' (원본에서 확인)</p>':'')+
     '<p class="src">다음 쪽부터 과목마다 ‘과목 첫 쪽’(요약)과 그 과목의 학교 원본이 이어져요.</p></div></div>';
