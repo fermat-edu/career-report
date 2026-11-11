@@ -110,9 +110,34 @@ K.readEditor=function(root){
 // 3) 원본 PDF 만들기
 K.buildPdfs=async function(res,school,year,onStep){
   const t1=school+" "+year+"학년도 1학년 1학기 교수학습 및 평가 운영 계획 (원본)", t2=school+" "+year+"학년도 교육운영 특색사업 (원본)";
-  const ev=res.evDocs.length?await SchoolParse.buildOriginal(res.evDocs,t1,s=>onStep&&onStep("평가계획 "+s),"ev"):null;
-  const ft=res.featDocs.length?await SchoolParse.buildOriginal(res.featDocs,t2,s=>onStep&&onStep("특색사업 "+s),"feat"):null;
+  let ev=res.evDocs.length?await SchoolParse.buildOriginal(res.evDocs,t1,s=>onStep&&onStep("평가계획 "+s),"ev"):null;
+  let ft=res.featDocs.length?await SchoolParse.buildOriginal(res.featDocs,t2,s=>onStep&&onStep("특색사업 "+s),"feat"):null;
+  if(ev) ev=await K.shrink(ev,"평가계획",onStep);
+  if(ft) ft=await K.shrink(ft,"특색사업",onStep);
   return {ev,ft};
+};
+/* 원본이 너무 크면(스캔본·사진 많은 파일) 쪽마다 그림으로 다시 찍어 크기를 줄임 — 구글 제출함은 한 번에 약 50MB까지만 받아요 */
+K.LIMIT=15*1048576;
+K.shrink=async function(doc,label,onStep){
+  if(!doc||!doc.bytes||doc.bytes.length<=K.LIMIT||!window.pdfjsLib||!window.jspdf) return doc;
+  const mb=b=>(b/1048576).toFixed(1)+"MB", orig=doc.bytes.length;
+  const src=await pdfjsLib.getDocument({data:doc.bytes.slice()}).promise, N=src.numPages;
+  for(const [W,Q] of [[1240,0.7],[1000,0.6],[820,0.5]]){
+    const {jsPDF}=window.jspdf; let pdf=null;
+    for(let i=1;i<=N;i++){
+      onStep&&onStep(label+" 파일이 커서("+mb(orig)+") 크기를 줄이는 중… ("+i+"/"+N+")");
+      const pg=await src.getPage(i), v1=pg.getViewport({scale:1}), vp=pg.getViewport({scale:W/v1.width});
+      const c=document.createElement("canvas"); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+      const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height);
+      await pg.render({canvasContext:ctx,viewport:vp}).promise;
+      const w=210, h=c.height*w/c.width;
+      if(!pdf) pdf=new jsPDF({orientation:"p",unit:"mm",format:[w,Math.max(h,10)]}); else pdf.addPage([w,Math.max(h,10)],"p");
+      pdf.addImage(c.toDataURL("image/jpeg",Q),"JPEG",0,0,w,h); c.width=c.height=0;
+    }
+    const out=new Uint8Array(pdf.output("arraybuffer"));
+    if(out.length<=K.LIMIT*2||W===820){ onStep&&onStep(label+" 크기 줄임: "+mb(orig)+" → "+mb(out.length)); return Object.assign({},doc,{bytes:out}); }
+  }
+  return doc;
 };
 K.toB64=function(bytes){ let s=""; const C=0x8000; for(let i=0;i<bytes.length;i+=C) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+C)); return btoa(s); };
 K.fromB64=function(b){ const s=atob(b), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
