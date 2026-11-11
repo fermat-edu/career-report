@@ -161,7 +161,11 @@ function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
     g=gd?normG(gd):99; if(cn) c=cn; nm=(m[3]||"이름없음").replace(/_/g," "); }
   const ci=CLASSES.indexOf(c);
   const cls=c==="기타"?"기타":(g<99?g:"")+c+"반";
-  return {...f,who:nm,key:form+"|"+cls+"|"+nm.replace(/\s/g,""),g,c,ci:ci<0?100:ci,cls,year:new Date(f.time).getFullYear(),form};
+  // 제출 시각은 파일 이름 끝의 시각(_MMdd_HHmm)으로: 인쇄용으로 다시 올린 파일도 원래 제출 시각·순서를 지킴
+  let time=f.time; const st=f.name.match(/_(\d{2})(\d{2})_(\d{2})(\d{2})\.pdf$/i);
+  if(st){ const cd=new Date(f.time); let y=cd.getFullYear(); if(+st[1]>cd.getMonth()+1+1) y--;
+    const t=new Date(y,+st[1]-1,+st[2],+st[3],+st[4]).getTime(); if(t>0&&t<=f.time+60000) time=t; }
+  return {...f,time,uploaded:f.time,who:nm,key:form+"|"+cls+"|"+nm.replace(/\s/g,""),g,c,ci:ci<0?100:ci,cls,year:new Date(time).getFullYear(),form};
 }
 const fmtTime=t=>{const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");};
 const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+"MB":Math.max(1,Math.round(b/1024))+"KB";
