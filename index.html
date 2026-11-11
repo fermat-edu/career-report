@@ -761,7 +761,8 @@ function commonTB(A,B){ // 두 사진에서 위·아래에 똑같이 남아 있�
 }
 function inkGroups(sig,a,e){ // 이 줄 묶음에서 글자·아이콘이 있는 가로 구간들 (SIGW 칸 기준)
   const on=new Uint8Array(SIGW);
-  for(let y=a;y<=e;y++){ const o=y*SIGW, ed=[0,1,2,SIGW-3,SIGW-2,SIGW-1].map(x=>sig.s[o+x]).sort((p,q)=>p-q), bg=(ed[2]+ed[3])/2; // 바탕색은 양 끝 칸으로
+  for(let y=a;y<=e;y++){ const o=y*SIGW, hist=new Array(17).fill(0); [0,1,2,3,SIGW-4,SIGW-3,SIGW-2,SIGW-1].forEach(x=>hist[Math.min(16,Math.floor(sig.s[o+x]/16))]++);
+    let bi=16; for(let k=16;k>=0;k--) if(hist[k]>hist[bi]) bi=k; const bg=bi*16+8; // 바탕색: 양 끝 칸에서 가장 많은 밝기(같으면 밝은 쪽)
     for(let x=0;x<SIGW;x++) if(Math.abs(sig.s[o+x]-bg)>40) on[x]=1; }
   const g=[]; let x=0; while(x<SIGW){ if(on[x]){ const s0=x; while(x<SIGW&&(on[x]||(x+1<SIGW&&on[x+1]))) x++; g.push([s0,x]); } else x++; }
   return g;
@@ -776,16 +777,7 @@ function inkCluster(sig,start,dir,maxBlank){ // start에서 dir(1 아래, -1 위
 function phoneBars(sig,force){ // 사진 한 장만 보고 찾기: 휴대폰 화면 캡처(세로로 긴 사진)일 때만
   const H=sig.H, phone=force||sig.img.height/sig.img.width>=1.75; // 위아래를 잘라 올린 사진은 아래 메뉴 바 모양이 뚜렷할 때만
   const ink=y=>sig.v[y]>=25, NW=g=>g.every(r=>r[1]-r[0]<=SIGW*0.35); let t=0, b=0;
-  // 맨 위 상태바: 왼쪽(시계)과 오른쪽(배터리)에 작은 아이콘이 있는 얇은 줄
-  const c=inkCluster(sig,0,1,Math.round(H*0.04));
-  if(phone&&c&&c[1]-c[0]<=H*0.06){ const g=inkGroups(sig,c[0],c[1]);
-    if(g.length>=2&&g[0][0]<SIGW*0.15&&g[g.length-1][1]>SIGW*0.85&&g[0][1]-g[0][0]<=SIGW*0.3&&g[g.length-1][1]-g[g.length-1][0]<=SIGW*0.3){
-      t=c[1]+1; const lim=t+Math.round(H*0.02); while(t<lim&&!ink(t)) t++;
-      // 바로 아래 인터넷 주소창·도구 막대 (양쪽 끝에 버튼이 있는 줄)
-      const c2=inkCluster(sig,t,1,Math.round(H*0.03));
-      if(c2&&c2[1]-c2[0]<=H*0.07&&c2[1]<=H*0.17){ const g2=inkGroups(sig,c2[0],c2[1]);
-        if(g2.length>=3&&g2[0][0]<SIGW*0.15&&g2[g2.length-1][1]>SIGW*0.85&&g2.filter(r=>r[1]-r[0]>SIGW*0.3).length<=1&&g2.every(r=>r[1]-r[0]<=SIGW*0.65)){ t=c2[1]+1; const l2=t+Math.round(H*0.02); while(t<l2&&!ink(t)) t++; } }
-    } }
+  // 맨 위 상태바: 왼쪽(시계)과 오른쪽(배터리)에 작은 아이콘이 있는 얇은 줄 (아래 코드)
   // 맨 아래: 휴대폰 메뉴 바(||| ○ <, 가운데 막대)와 그 위 인터넷 도구 막대(← → ⟳)
   let y=H-1;
   for(let step=0;step<2;step++){
@@ -803,6 +795,18 @@ function phoneBars(sig,force){ // 사진 한 장만 보고 찾기: 휴대폰 화
     let k=d[0]-1; const lim=k-Math.round(H*0.02); while(k>lim&&!ink(k)) k--;
     b=H-1-k; y=k;
   }
+  const Wd=H*sig.img.width/sig.img.height; // 사진 너비를 줄 단위로 (위아래를 잘라 올린 사진도 같은 기준으로)
+  const c=inkCluster(sig,0,1,Math.round(Wd*0.07));
+  // 맨 위 상태바는 휴대폰 모양 사진이거나 아래 메뉴 바가 있는 사진에서만 찾음 (PC 화면 제목줄을 지우지 않게)
+  const statusLike=g=>g.length>=3&&g[0][0]<SIGW*0.08&&g[0][1]-g[0][0]<=SIGW*0.13&&g.filter(r=>r[0]>SIGW*0.65).length>=2&&g[g.length-1][1]>SIGW*0.9&&!g.some(r=>r[1]>SIGW*0.35&&r[0]<SIGW*0.6);
+  if(c&&c[1]-c[0]<=Wd*0.11&&c[1]<=H*0.3&&(phone||b>0||(c[1]-c[0]<=Wd*0.05&&statusLike(inkGroups(sig,c[0],c[1]))))){ const g=inkGroups(sig,c[0],c[1]);
+    if(g.length>=2&&g[0][0]<SIGW*0.15&&g[g.length-1][1]>SIGW*0.85&&g[0][1]-g[0][0]<=SIGW*0.3&&g[g.length-1][1]-g[g.length-1][0]<=SIGW*0.3){
+      t=c[1]+1; const lim=t+Math.round(Wd*0.04); while(t<lim&&!ink(t)) t++;
+      // 바로 아래 인터넷 주소창·도구 막대 (양쪽 끝에 버튼이 있는 줄)
+      const c2=inkCluster(sig,t,1,Math.round(Wd*0.06));
+      if(c2&&c2[1]-c2[0]<=Wd*0.16&&c2[1]<=Math.min(H*0.4,Wd*0.4)){ const g2=inkGroups(sig,c2[0],c2[1]);
+        if(g2.length>=3&&g2[0][0]<SIGW*0.15&&g2[g2.length-1][1]>SIGW*0.85&&g2.filter(r=>r[1]-r[0]>SIGW*0.3).length<=1&&g2.every(r=>r[1]-r[0]<=SIGW*0.65)){ t=c2[1]+1; const l2=t+Math.round(Wd*0.04); while(t<l2&&!ink(t)) t++; } }
+    } }
   return {t,b};
 }
 function barsFor(sigs){ // 사진마다 [위에서 뺄 줄, 아래에서 뺄 줄]
