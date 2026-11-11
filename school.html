@@ -286,6 +286,20 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 .pp .cp b{font-size:20px}.pp .cp small{color:#5f6d70}.pp .cp p{margin:4px 0 0;font-size:14px;color:#333}
 .pp .cp .cpg{margin-left:auto;flex:none;font-weight:700;color:#2f8792;font-size:16px}
 .pp .cbox.big p{font-size:15px}.pp .cbox.big .act{font-size:14px}
+
+.endsubmit{background:#fffbe0;border:2px dashed #f2c94c;border-radius:16px;padding:18px;text-align:center}
+.endsubmit p{margin:0 0 12px;line-height:1.6}.endsubmit small{color:var(--muted)}
+.endsubmit .btn{font-size:17px;padding:14px 22px;min-width:240px}
+
+@media (max-width:600px){
+ .bar{padding-top:8px}
+ .bar-in{gap:6px}
+ .bar-in .status{order:-3;flex:1 1 100%;font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .bar-in #pdfBtn{order:-2;flex:1 1 100%;font-size:16.5px;padding:12px 10px}
+ .bar-in #resetArea{display:contents}
+ .bar-in .btn:not(#pdfBtn){font-size:12.5px;padding:7px 9px;min-height:0;flex:1 1 auto;white-space:nowrap}
+}
+.wrap{padding-bottom:calc(var(--barh,120px) + 24px)!important}
 </style>
 
 </head>
@@ -304,6 +318,10 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
     <p class="note">쓰는 내용은 이 기기에 자동 저장돼요. 창을 닫았다가 다시 열어도 이어서 할 수 있어요. (다른 기기로는 이어지지 않아요)</p>
   </header>
   <div id="form"></div>
+  <section class="endsubmit" aria-label="제출하기">
+    <p><b>다 썼으면 아래 버튼을 눌러 제출하세요.</b><br><small>화면 맨 아래 노란 버튼과 같은 버튼이에요.</small></p>
+    <button class="btn primary" id="pdfBtn2" type="button">📄 PDF 만들고 제출</button>
+  </section>
 </div>
 
 <div class="bar">
@@ -973,6 +991,15 @@ loadRemote();
 if(!DEMO) idbGet("photos").then(ph=>{ if(ph&&typeof ph==="object"&&Object.keys(ph).length){ S.ph=ph; renderForm(); } }).catch(()=>{});
 if(!DEMO&&Object.keys(S.v).length) statusEl.textContent="저장해 둔 내용을 불러왔어요 · 이어서 쓰세요";
 })();
+</script>
+<script>
+(function(){ const a=document.getElementById("pdfBtn"), b=document.getElementById("pdfBtn2"); if(!a||!b) return;
+  const sync=()=>{ b.textContent=(a.dataset.mode==="send"?"💬 ":"📄 ")+a.textContent; b.disabled=a.disabled; };
+  b.addEventListener("click",()=>a.click()); new MutationObserver(sync).observe(a,{childList:true,characterData:true,subtree:true,attributes:true}); sync(); })();
+</script>
+<script>
+(function(){ const bar=document.querySelector(".bar"); if(!bar||!window.ResizeObserver) return;
+  const f=()=>document.documentElement.style.setProperty("--barh",bar.offsetHeight+"px"); new ResizeObserver(f).observe(bar); f(); })();
 </script>
 
 </body>
