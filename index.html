@@ -798,7 +798,7 @@ function phoneBars(sig,force){ // 사진 한 장만 보고 찾기: 휴대폰 화
   const Wd=H*sig.img.width/sig.img.height; // 사진 너비를 줄 단위로 (위아래를 잘라 올린 사진도 같은 기준으로)
   const c=inkCluster(sig,0,1,Math.round(Wd*0.07));
   // 맨 위 상태바는 휴대폰 모양 사진이거나 아래 메뉴 바가 있는 사진에서만 찾음 (PC 화면 제목줄을 지우지 않게)
-  const statusLike=g=>g.length>=3&&g[0][0]<SIGW*0.08&&g[0][1]-g[0][0]<=SIGW*0.13&&g.filter(r=>r[0]>SIGW*0.65).length>=2&&g[g.length-1][1]>SIGW*0.9&&!g.some(r=>r[1]>SIGW*0.35&&r[0]<SIGW*0.6);
+  const statusLike=g=>g.length>=3&&g[0][0]<SIGW*0.08&&g[0][1]-g[0][0]<=SIGW*0.25&&g.filter(r=>r[0]>SIGW*0.65).length>=3&&g[g.length-1][1]>SIGW*0.9&&!g.some(r=>r[1]>SIGW*0.35&&r[0]<SIGW*0.6);
   if(c&&c[1]-c[0]<=Wd*0.11&&c[1]<=H*0.3&&(phone||b>0||(c[1]-c[0]<=Wd*0.05&&statusLike(inkGroups(sig,c[0],c[1]))))){ const g=inkGroups(sig,c[0],c[1]);
     if(g.length>=2&&g[0][0]<SIGW*0.15&&g[g.length-1][1]>SIGW*0.85&&g[0][1]-g[0][0]<=SIGW*0.3&&g[g.length-1][1]-g[g.length-1][0]<=SIGW*0.3){
       t=c[1]+1; const lim=t+Math.round(Wd*0.04); while(t<lim&&!ink(t)) t++;
@@ -840,7 +840,7 @@ async function stitchPages(srcs){
   for(let i=1;i<sigs.length;i++){
     const cur=sigs[i], p=pairInfo(prev,cur);
     if(p.dup||p.inside) continue;
-    const last=segs[segs.length-1]; if(last.sig===prev) last.y1=Math.max(last.y0+1,prev.H-p.b);   // 앞 사진의 하단 메뉴는 빼기
+    const last=segs[segs.length-1]; if(last.sig===prev) last.y1=Math.max(last.y0+1,prev.H-Math.max(p.b,BARS[last.bi].b));   // 앞 사진의 하단 메뉴는 빼기
     if(p.gap) segs.push({gap:Math.round(W*0.03)});
     segs.push({sig:cur,y0:Math.max(p.start,BARS[i].t),y1:cur.H,bi:i}); prev=cur;
   }
