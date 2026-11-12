@@ -89,5 +89,30 @@
     if(document.body) put(); else document.addEventListener("DOMContentLoaded",put);
   })();
 
-  window.SubmitKit={show,hide,sizeMsg,post,pending,clear,awake,mark,wasBusy};
+  /* 꼭 써야 하는 칸을 안 쓰고 제출을 누르면: 무엇을 써야 하는지 창으로 알려 주고, 그 칸을 빨갛게 표시 */
+  const rq=document.createElement("style");
+  rq.textContent='.skreq{position:fixed;inset:0;z-index:10000;background:rgba(10,20,22,.55);display:flex;align-items:center;justify-content:center;padding:20px}.skreq[hidden]{display:none}'+
+   '.skreq>div{background:#fff;color:#1d2b2d;border-radius:18px;max-width:380px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.25)}'+
+   '.skreq h3{margin:0 0 6px;font-size:19px;text-align:center}.skreq p{margin:0 0 12px;font-size:14px;color:#5f6d70;text-align:center;line-height:1.5}'+
+   '.skreq ul{list-style:none;margin:0 0 16px;padding:0}.skreq li{background:#fff1f0;border:1.5px solid #e5534b;border-radius:10px;padding:10px 12px;margin:6px 0;font-size:15.5px;font-weight:700;color:#b42318}'+
+   '.skreq button{display:block;width:100%;font:inherit;font-size:16px;font-weight:800;background:#f2c94c;color:#1d2b2d;border:0;border-radius:12px;padding:13px}'+
+   '.skmiss{outline:3px solid #e5534b!important;outline-offset:2px;background:#fff7f6!important}.skmissmsg{color:#b42318;font-size:13px;font-weight:700;margin-top:4px}';
+  document.head.appendChild(rq);
+  const rbox=document.createElement("div"); rbox.className="skreq"; rbox.hidden=true; rbox.setAttribute("role","alertdialog"); rbox.setAttribute("aria-modal","true");
+  rbox.innerHTML='<div><h3>✏️ 아직 안 쓴 칸이 있어요</h3><p>오류가 아니에요! 아래 칸을 먼저 써야<br>선생님께 제출할 수 있어요.</p><ul></ul><button type="button">확인하고 쓰러 가기</button></div>';
+  const putR=()=>document.body.appendChild(rbox); if(document.body) putR(); else document.addEventListener("DOMContentLoaded",putR);
+  function clearMiss(el){ el.classList.remove("skmiss"); const m=el.parentNode&&el.parentNode.querySelector(".skmissmsg"); if(m) m.remove(); }
+  /* items: [{id, label}] — 빈 칸만 넘겨요. 하나도 없으면 false */
+  function require(items){
+    if(!items||!items.length) return false;
+    rbox.querySelector("ul").innerHTML=items.map(x=>'<li>'+x.label+'</li>').join("");
+    items.forEach(x=>{ const el=document.getElementById(x.id); if(!el) return; el.classList.add("skmiss");
+      if(!el.parentNode.querySelector(".skmissmsg")){ const m=document.createElement("div"); m.className="skmissmsg"; m.textContent="↑ 여기를 써 주세요"; el.insertAdjacentElement("afterend",m); }
+      const off=()=>{ if(String(el.value||"").trim()) clearMiss(el); }; el.addEventListener("input",off); el.addEventListener("change",off); });
+    rbox.hidden=false; const b=rbox.querySelector("button"); b.focus();
+    b.onclick=()=>{ rbox.hidden=true; const el=document.getElementById(items[0].id); if(el){ try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){ el.scrollIntoView(); } setTimeout(()=>{ try{ el.focus({preventScroll:true}); }catch(e){ el.focus(); } },350); } };
+    return true;
+  }
+
+  window.SubmitKit={show,hide,sizeMsg,post,pending,clear,awake,mark,wasBusy,require};
 })();

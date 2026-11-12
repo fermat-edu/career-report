@@ -363,7 +363,7 @@ select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:tra
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="school-data.js?v=8"></script>
 <script src="school-kit.js?v=6"></script>
-<script src="submit-kit.js?v=2"></script>
+<script src="submit-kit.js?v=3"></script>
 <script>
 (function(){
 const SUBMIT_URL="https://script.google.com/macros/s/AKfycbwPeH9jedalEe5H4_GrkgQHZ0YA6oruJCM4KHxNpoiw7iNFLr-0tSccUc5aEztzZ3Af/exec";
@@ -896,9 +896,9 @@ pdfBtn.addEventListener("click",async()=>{
   if(lastPdf && pdfBtn.dataset.mode==="send"){ return myPdf(deliver); }
   if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
   const ci=clsInfo();
-  if(!ci.G) return goTo("f_grade","맨 위의 학년을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.");
-  if(!ci.name) return goTo("f_cls","맨 위의 반을 먼저 써 주세요.");
-  if(!val("name").trim()) return goTo("f_name","맨 위의 이름을 먼저 써 주세요.");
+  { const miss=[]; if(!ci.G) miss.push({id:"f_grade",label:"학년"}); if(!ci.name) miss.push({id:"f_cls",label:"반"}); if(!val("name").trim()) miss.push({id:"f_name",label:"이름"});
+    if(!val("school")) miss.push({id:"f_school",label:"희망 고등학교 선택"});
+    if(miss.length){ statusEl.textContent="아직 안 쓴 칸: "+miss.map(x=>x.label).join(", ")+" (오류가 아니에요. 먼저 써 주세요)"; SubmitKit.require(miss); return; } }
   if(!cur()) return goTo(val("school")===OWNKEY?"ownAnalyze":"f_school",val("school")===OWNKEY?"파일을 올리고 '이 내용으로 보고서 만들기'까지 눌러 주세요.":"희망 고등학교를 먼저 골라 주세요.");
   if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
   pdfBtn.disabled=true; let sent=false;

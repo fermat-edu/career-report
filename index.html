@@ -606,14 +606,8 @@ saveBtn.addEventListener("click",()=>{ if(lastPdf) download(lastPdf.blob,lastPdf
 pdfBtn.addEventListener("click",async()=>{
   if(lastPdf && pdfBtn.dataset.mode==="send"){ return deliver(lastPdf.blob,lastPdf.name); }
   if(!window.html2canvas||!window.jspdf){statusEl.textContent="PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";return;}
-  if(!val("name").trim()||!clsInfo().G||!clsInfo().name){
-    statusEl.textContent="맨 위(1단계)의 학년·반·이름을 먼저 써 주세요. 선생님께 이 이름으로 제출돼요.";
-    const miss=!clsInfo().G?"grade":!clsInfo().name?"cls":"name", f=document.getElementById("f_"+miss);
-    document.getElementById("doneIcon").textContent="✏️"; document.getElementById("doneTitle").textContent={grade:"학년",cls:"반",name:"이름"}[miss]+"을 써 주세요";
-    document.getElementById("doneText").textContent="맨 위(1단계)의 학년·반·이름을 먼저 써야\n선생님께 제출할 수 있어요."; document.getElementById("doneShare").hidden=true;
-    afterOk=()=>{ if(f){ try{f.scrollIntoView({block:"center"});}catch(_){f.scrollIntoView();} f.focus(); } };
-    document.getElementById("doneModal").hidden=false; document.getElementById("doneOk").focus(); return;
-  }
+  { const ci=clsInfo(), miss=[]; if(!ci.G) miss.push({id:"f_grade",label:"학년"}); if(!ci.name) miss.push({id:"f_cls",label:"반"}); if(!val("name").trim()) miss.push({id:"f_name",label:"이름"});
+    if(miss.length){ statusEl.textContent="아직 안 쓴 칸: "+miss.map(x=>x.label).join(", ")+" (오류가 아니에요. 먼저 써 주세요)"; SubmitKit.require(miss); return; } }
   pdfBtn.disabled=true; let sent=false;
   SubmitKit.mark(QKEY,true);
   SubmitKit.show("보고서 PDF를 만들어 선생님께 보내요.\n사진·결과지가 많으면 파일이 커서 1~3분 걸릴 수 있어요.",statusEl);
