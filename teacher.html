@@ -109,7 +109,6 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
         <label class="chk" hidden><input type="checkbox" id="onlyNew" checked> 학생별 최신 제출만</label>
         <button class="btn" id="refreshBtn" type="button">새로고침</button>
         <button class="btn primary" id="zipBtn" type="button">전체 받기</button>
-        <button class="btn" id="reprintBtn" type="button" title="컴퓨터에 있는 인쇄용 PDF를 골라 올리면 같은 이름의 제출 파일을 바꿔요">인쇄용 파일로 바꾸기</button>
       </div>
       <div class="progress" id="prog" hidden><i></i></div>
       <div class="msg" id="msg"></div>
@@ -368,38 +367,6 @@ async function zipFiles(v,label,folders,btn){
   saveBlob(await zip.generateAsync({type:"blob"}),zname);
   $("msg").textContent=(v.length-fail)+"개 파일을 "+zname+"로 받았어요."+(fail?" ("+fail+"개는 가져오지 못했어요)":"");
   $("prog").hidden=true; bar.style.width="0"; btn.disabled=false;
-}
-/* 인쇄용 파일로 바꾸기: 고른 PDF와 이름이 똑같은 제출 파일을 찾아, 새 파일을 올리고 옛 파일은 휴지통으로 */
-const rpPick=document.createElement("input"); rpPick.type="file"; rpPick.accept="application/pdf,.pdf"; rpPick.multiple=true; rpPick.hidden=true; document.body.appendChild(rpPick);
-$("reprintBtn").addEventListener("click",()=>{ rpPick.value=""; rpPick.click(); });
-rpPick.addEventListener("change",()=>reprint([...rpPick.files]));
-$("main").addEventListener("dragover",e=>{ if(e.dataTransfer&&[...e.dataTransfer.types].includes("Files")){ e.preventDefault(); } });
-$("main").addEventListener("drop",e=>{ const fs=[...(e.dataTransfer?e.dataTransfer.files:[])].filter(f=>/\.pdf$/i.test(f.name)); if(!fs.length) return; e.preventDefault(); reprint(fs); });
-function b64of(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(file); }); }
-async function reprint(list){
-  if(!list.length) return;
-  const btn=$("reprintBtn"); btn.disabled=true; $("prog").hidden=false; const bar=$("prog").firstElementChild;
-  const done=[], skipNo=[], skipDone=[], fail=[];
-  for(let i=0;i<list.length;i++){ const file=list[i];
-    bar.style.width=(i/list.length*100)+"%"; $("msg").className="msg"; $("msg").textContent="인쇄용 파일로 바꾸는 중… ("+(i+1)+"/"+list.length+") "+file.name;
-    const t=FILES.find(f=>f.name===file.name);
-    if(!t){ (FILES.some(f=>f.reprint&&f.orig===file.name)?skipDone:skipNo).push(file.name); continue; }
-    try{
-      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({label:file.name.replace(/\.pdf$/i,""),pdf:await b64of(file)})});
-      const j=await r.json(); if(!j.ok) throw new Error(j.error||"fail");
-      try{ await api({action:"delete",id:t.id}); }catch(_){}   // 못 지워도 다음 새로고침 때 '이전 제출 정리'로 지워짐
-      done.push(file.name);
-    }catch(e){ fail.push(file.name); }
-  }
-  bar.style.width="100%";
-  try{ FILES=(await api({action:"list"})).files.map(parse); await dedupe(); render(); }catch(_){}
-  $("prog").hidden=true; btn.disabled=false;
-  const nm=a=>a.map(x=>x.replace(/^(\d+학년_?)/,"").replace(/_\d{4}_\d{4}\.pdf$/i,"").replace(/_/g," ")).join(", ");
-  $("msg").className="msg"+(fail.length?" err":"");
-  $("msg").textContent="✅ "+done.length+"개를 인쇄용으로 바꿨어요. (원래 파일은 구글 드라이브 휴지통에 30일 남아요)"+
-    (skipDone.length?" · 이미 바꾼 파일 "+skipDone.length+"개는 건너뜀":"")+
-    (skipNo.length?" · 제출함에 같은 이름이 없어 건너뜀 "+skipNo.length+"개: "+nm(skipNo)+" (학생이 그 뒤에 다시 냈거나 이름이 달라요)":"")+
-    (fail.length?" · ⚠️ 올리지 못함 "+fail.length+"개: "+nm(fail)+" → 다시 눌러 주세요":"");
 }
 $("zipBtn").addEventListener("click",()=>zipFiles(visible(),FORM+"_"+YEAR+"년_전체",true,$("zipBtn")));
 
