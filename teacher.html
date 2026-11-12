@@ -59,6 +59,13 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .confirm select{font:inherit;font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .dlbox{font-size:13.5px;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.6;overflow-wrap:anywhere}
 .dlbox a{color:var(--accent);font-weight:700}
+.uppanel{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.uprow{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:14px}
+.uprow .fn{flex:1 1 100%;font-weight:700;overflow-wrap:anywhere}
+.uprow input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card,#fff);color:inherit;min-width:0}
+.uprow input.g{width:4.2em}.uprow input.c{width:7.5em}.uprow input.n{width:7em}
+.uprow .x{margin-left:auto}
+.uprow .bad{border-color:#d33}
 .empty{color:var(--muted);text-align:center;padding:30px 10px}
 .progress{height:6px;background:var(--field);border-radius:99px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
@@ -109,6 +116,12 @@ input:focus{outline:2px solid var(--accent);outline-offset:1px}
         <label class="chk" hidden><input type="checkbox" id="onlyNew" checked> 학생별 최신 제출만</label>
         <button class="btn" id="refreshBtn" type="button">새로고침</button>
         <button class="btn primary" id="zipBtn" type="button">전체 받기</button>
+        <button class="btn" id="upBtn" type="button" title="카톡 등으로 따로 받은 학생 PDF를 인쇄용(A4)으로 정리해서 제출함에 넣어요">따로 받은 PDF 올리기</button>
+      </div>
+      <div class="uppanel" id="upPanel" hidden>
+        <div class="msg" style="margin:0">학생마다 <b>학년·반·이름</b>을 확인하고 올리세요. A4보다 긴 쪽은 인쇄용으로 나눠서 올라가요. 그 학생이 이미 낸 파일이 있으면 이 파일이 최신이 돼요.</div>
+        <div id="upRows"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="upGo" type="button">인쇄용으로 만들어 올리기</button><button class="btn" id="upMore" type="button">PDF 더 고르기</button><button class="btn" id="upCancel" type="button">취소</button></div>
       </div>
       <div class="progress" id="prog" hidden><i></i></div>
       <div class="msg" id="msg"></div>
@@ -368,6 +381,102 @@ async function zipFiles(v,label,folders,btn){
   $("msg").textContent=(v.length-fail)+"개 파일을 "+zname+"로 받았어요."+(fail?" ("+fail+"개는 가져오지 못했어요)":"");
   $("prog").hidden=true; bar.style.width="0"; btn.disabled=false;
 }
+/* ===== 따로 받은 PDF 올리기: 학년·반·이름 확인 → A4보다 긴 쪽은 나눠서 인쇄용으로 → 제출함에 넣기 ===== */
+let UPS=[];
+const upPick=document.createElement("input"); upPick.type="file"; upPick.accept="application/pdf,.pdf"; upPick.multiple=true; upPick.hidden=true; document.body.appendChild(upPick);
+$("upBtn").addEventListener("click",()=>{ upPick.value=""; upPick.click(); });
+$("upMore").addEventListener("click",()=>{ upPick.value=""; upPick.click(); });
+$("upCancel").addEventListener("click",()=>{ UPS=[]; drawUps(); });
+upPick.addEventListener("change",()=>addUps([...upPick.files]));
+$("main").addEventListener("dragover",e=>{ if(e.dataTransfer&&[...e.dataTransfer.types].includes("Files")) e.preventDefault(); });
+$("main").addEventListener("drop",e=>{ const fs=[...(e.dataTransfer?e.dataTransfer.files:[])].filter(f=>/\.pdf$/i.test(f.name)||f.type==="application/pdf"); if(!fs.length) return; e.preventDefault(); addUps(fs); });
+function guessWho(fname){ // 파일 이름에서 학년·반·이름 짐작 (예: 9학년_9탈레스반_홍길동_1106_2147.pdf, 9탈레스반_홍길동.pdf)
+  const b=fname.replace(/\.pdf$/i,"").replace(/^[^_]*보고서__/,"").replace(/(_\d{4}_\d{4})+$/,"").replace(/\s+/g,"_");
+  let m=b.match(/^(\d)\s*학년_?(\d?)([^_]*?)반_([^_]+)/); if(m) return {g:m[1]||m[2],c:m[3],n:m[4]};
+  m=b.match(/^(\d)([^_\d][^_]*?)반_([^_]+)/); if(m) return {g:m[1],c:m[2],n:m[3]};
+  return {g:"",c:"",n:""};
+}
+function addUps(fs){ fs.forEach(f=>UPS.push({file:f,...guessWho(f.name)})); drawUps(); }
+function drawUps(){
+  $("upPanel").hidden=!UPS.length;
+  $("upRows").innerHTML=UPS.map((u,i)=>'<div class="uprow" data-i="'+i+'"><span class="fn">📄 '+esc(u.file.name)+' <small style="color:var(--muted);font-weight:400">'+fmtSize(u.file.size)+'</small></span>'+
+    '<input class="g" data-k="g" inputmode="numeric" placeholder="학년" value="'+esc(u.g)+'">학년 '+
+    '<input class="c" data-k="c" placeholder="반 (예: 탈레스)" value="'+esc(u.c)+'">반 '+
+    '<input class="n" data-k="n" placeholder="이름" value="'+esc(u.n)+'">'+
+    '<button class="btn x" type="button" data-x="'+i+'" aria-label="빼기">✕</button></div>').join("");
+}
+$("upRows").addEventListener("input",e=>{ const r=e.target.closest(".uprow"); if(r&&e.target.dataset.k){ UPS[+r.dataset.i][e.target.dataset.k]=e.target.value.trim(); e.target.classList.remove("bad"); } });
+$("upRows").addEventListener("click",e=>{ const x=e.target.closest("[data-x]"); if(x){ UPS.splice(+x.dataset.x,1); drawUps(); } });
+function upLabel(u){ let g=String(u.g).replace(/\D/g,""); const n=+g; if(n>=1&&n<=3) g=String(n+6);
+  const c=String(u.c).replace(/^\s*\d+\s*(학년)?/,"").replace(/반\s*$/,"").replace(/[\s_]/g,"");
+  const nm=String(u.n).replace(/[\s_]/g,"");
+  const base=g+"학년_"+g+c+"반_"+nm;
+  return (FORM&&FORM!=="진로탐구보고서"?FORM+"__":"")+base; }
+let PDFJS=null;
+function loadPdfJs(){ if(PDFJS) return PDFJS; PDFJS=new Promise((res,rej)=>{ const sc=document.createElement("script");
+  sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+  sc.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; res(window.pdfjsLib); };
+  sc.onerror=()=>{ PDFJS=null; rej(new Error("pdfjs")); }; document.head.appendChild(sc); }); return PDFJS; }
+const A4W=595.28, A4H=841.89, PXW=1588, MAR=40; // 인쇄용 쪽: A4, 위·아래 여백 40px(1588px 기준)
+function canvasToBytes(cv){ const d=cv.toDataURL("image/jpeg",0.88).split(",")[1], bin=atob(d), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+// 한 줄이 비어 있는지(글자·그림 없이 한 가지 색) — 그 줄에서 쪽을 나눔
+function blankRow(data,w,y){ const o=y*w*4; let mn=255,mx=0; for(let x=0;x<w;x+=2){ const i=o+x*4, v=(data[i]*3+data[i+1]*6+data[i+2])/10; if(v<mn)mn=v; if(v>mx)mx=v; if(mx-mn>18) return false; } return true; }
+async function toPrintPdf(file,onStep){
+  const buf=await file.arrayBuffer(); const {PDFDocument}=PDFLib;
+  const src=await PDFDocument.load(buf,{ignoreEncryption:true}); const out=await PDFDocument.create();
+  const pages=src.getPages(); let split=0, js=null, pdoc=null;
+  const tall=pages.map(p=>{ const z=p.getSize(); return z.height/z.width>1.45; });
+  if(!tall.some(Boolean)) return {blob:file,pages:pages.length,split:0};   // 이미 인쇄용이면 원본 그대로
+  // A4보다 길지 않은 쪽은 한 번에 복사 (따로따로 복사하면 같이 쓰는 그림이 쪽마다 복사돼 파일이 커짐)
+  const keepIdx=pages.map((_,i)=>i).filter(i=>!tall[i]), kept=keepIdx.length?await out.copyPages(src,keepIdx):[];
+  for(let i=0;i<pages.length;i++){ onStep&&onStep(i,pages.length);
+    const {width:w,height:h}=pages[i].getSize();
+    if(!tall[i]){ out.addPage(kept[keepIdx.indexOf(i)]); continue; }
+    // A4보다 긴 쪽: 가로 1588px로 그려서 빈 줄에서 A4 높이씩 나눔
+    if(!js){ js=await loadPdfJs(); pdoc=await js.getDocument({data:new Uint8Array(buf.slice(0))}).promise; }
+    const pg=await pdoc.getPage(i+1), sc=PXW/w, totH=Math.round(h*sc), maxH=Math.floor(PXW*A4H/A4W)-MAR*2;
+    let y0=0;
+    while(y0<totH-4){ const want=Math.min(maxH,totH-y0);
+      const cv=document.createElement("canvas"); cv.width=PXW; cv.height=want; const cx=cv.getContext("2d",{willReadFrequently:true});
+      cx.fillStyle="#fff"; cx.fillRect(0,0,PXW,want);
+      await pg.render({canvasContext:cx,viewport:pg.getViewport({scale:sc,offsetY:-y0})}).promise;
+      let cut=want;
+      if(y0+want<totH){ const d=cx.getImageData(0,0,PXW,want).data; cut=0;
+        for(let y=want-1;y>=want*0.6;y--){ if(blankRow(d,PXW,y)){ cut=y+1; break; } }
+        if(!cut) cut=want; }
+      let use=cv; if(cut<want){ use=document.createElement("canvas"); use.width=PXW; use.height=cut; use.getContext("2d").drawImage(cv,0,0); }
+      const img=await out.embedJpg(canvasToBytes(use)); const p=out.addPage([A4W,A4H]); const k=A4W/PXW;
+      p.drawImage(img,{x:0,y:A4H-MAR*k-cut*k,width:A4W,height:cut*k});
+      cv.width=cv.height=0; if(use!==cv) use.width=use.height=0;
+      y0+=cut; split++; }
+  }
+  const bytes=await out.save(); return {blob:new Blob([bytes],{type:"application/pdf"}),pages:out.getPageCount(),split};
+}
+$("upGo").addEventListener("click",async()=>{
+  let bad=null; document.querySelectorAll("#upRows .uprow").forEach(r=>{ const u=UPS[+r.dataset.i];
+    [["g",/[1-9]/],["c",/\S/],["n",/\S/]].forEach(([k,re])=>{ if(!re.test(u[k]||"")){ const el=r.querySelector('[data-k="'+k+'"]'); el.classList.add("bad"); bad=bad||el; } }); });
+  if(bad){ bad.focus(); $("msg").className="msg err"; $("msg").textContent="빨간 칸(학년·반·이름)을 채워 주세요."; return; }
+  const btns=["upGo","upMore","upCancel","upBtn"].map($); btns.forEach(b=>b.disabled=true);
+  $("prog").hidden=false; const bar=$("prog").firstElementChild; const ok=[], fail=[];
+  for(let i=0;i<UPS.length;i++){ const u=UPS[i], who=u.c+" "+u.n;
+    try{
+      $("msg").className="msg"; $("msg").textContent="인쇄용으로 정리하는 중… ("+(i+1)+"/"+UPS.length+") "+who;
+      const r=await toPrintPdf(u.file,(p,n)=>{ bar.style.width=((i+p/n*0.8)/UPS.length*100)+"%"; });
+      if(r.blob.size>34*1024*1024) throw new Error("파일이 너무 커요(34MB 초과)");
+      $("msg").textContent="제출함에 넣는 중… ("+(i+1)+"/"+UPS.length+") "+who;
+      const res=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({label:upLabel(u),pdf:await b64of(r.blob)})});
+      const j=await res.json(); if(!j.ok) throw new Error(j.error||"fail");
+      ok.push(who+(r.split?" (긴 쪽 나눔)":""));
+    }catch(e){ fail.push(who+(/pdfjs/.test(e.message)?" (PDF 그리기 도구를 못 불러옴)":/Invalid PDF|encrypt|password/i.test(e.message)?" (열 수 없는 PDF)":/34MB/.test(e.message)?" (34MB 초과)":"")); }
+    bar.style.width=((i+1)/UPS.length*100)+"%";
+  }
+  try{ FILES=(await api({action:"list"})).files.map(parse); await dedupe(); render(); }catch(_){}
+  $("prog").hidden=true; btns.forEach(b=>b.disabled=false);
+  UPS=UPS.filter(u=>fail.some(f=>f.indexOf(u.c+" "+u.n)===0)); drawUps();
+  $("msg").className="msg"+(fail.length?" err":"");
+  $("msg").textContent=(ok.length?"✅ "+ok.length+"명 올렸어요: "+ok.join(", "):"")+(fail.length?(ok.length?" · ":"")+"⚠️ 못 올림: "+fail.join(", ")+" → 다시 눌러 주세요":"");
+});
+function b64of(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); }); }
 $("zipBtn").addEventListener("click",()=>zipFiles(visible(),FORM+"_"+YEAR+"년_전체",true,$("zipBtn")));
 
 if(KEY) login(); else $("pw").focus();
