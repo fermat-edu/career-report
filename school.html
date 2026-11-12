@@ -529,7 +529,7 @@ function renderForm(){
     const picked=arr("clubs");
     let p4='<div class="pguide"><b>동아리 3개를 골라요.</b> 이름을 누르면 학교 운영계획서에 있는 활동 목적과 연간 활동이 펼쳐져요. 마음에 들면 <b>선택</b>을 누르세요.'+
       (s.clubs.some(c=>c.m)?'<br><span class="note">※ 이 학교는 받은 자료에 동아리 이름만 있어서 설명이 없어요. 활동 내용은 입학 후 동아리 소개 때 확인하세요.</span>':'')+'</div>'+
-      '<div class="clubtools"><input type="text" id="clubq" placeholder="동아리 찾기 (예: 과학, 영어, 코딩)" aria-label="동아리 찾기" autocomplete="off"><span class="pickcount" id="pickcount">'+picked.length+' / '+MAXC+' 선택</span></div>'+
+      '<div class="clubtools"><input type="text" id="clubq" placeholder="동아리 찾기 (예: 과학, 영어, 코딩)" aria-label="동아리 찾기" autocomplete="off"><span class="pickcount" id="pickcount">'+picked.length+'개 선택</span></div>'+
       '<div class="clist" id="clist">'+s.clubs.map((c,i)=>clubItem(c,i,picked.includes(c.n))).join("")+'</div>'+
       '<div class="subhead">내가 고른 동아리</div><div class="chosen" id="chosen">'+chosenHtml(s)+'</div>';
     h+=section("03.","동아리 고르기","c-teal",p4,"3개 선택");
@@ -550,7 +550,7 @@ function chosenHtml(s){
   if(!picked.length) return '<div class="empty">아직 고른 동아리가 없어요. 위 목록에서 3개를 골라 주세요.</div>';
   return picked.map((n,k)=>{const c=s.clubs.find(x=>x.n===n)||{n,d:""};
     return '<div class="cbox"><div class="ch"><b>'+(k+1)+'. '+esc(c.n)+'</b><button type="button" class="rm" data-unpick="'+esc(n)+'">빼기</button></div><div class="cdsc">'+esc(c.d||"")+'</div></div>';}).join("")+
-    (picked.length<MAXC?'<p class="note">'+(MAXC-picked.length)+'개 더 골라 주세요.</p>':'<p class="note">✅ 3개를 모두 골랐어요. 아래 노란 버튼을 눌러 제출하세요.</p>');
+    (picked.length<MAXC?'<p class="note">3개 정도 골라 보세요. (꼭 3개가 아니어도 제출할 수 있어요)</p>':'<p class="note">✅ '+picked.length+'개 골랐어요. 아래 노란 버튼을 눌러 제출하세요.</p>');
 }
 function updCount(t){const c=document.getElementById("cnt_"+t.dataset.id); if(!c)return; const n=t.value.replace(/\s/g,"").length, L=+t.dataset.limit; c.textContent="공백 제외 "+n+" / "+L+"자"; c.classList.toggle("over",n>L);}
 
@@ -566,12 +566,12 @@ form.addEventListener("change",e=>{const t=e.target;
 function filterClubs(q){ q=q.trim().toLowerCase(); document.querySelectorAll("#clist .club").forEach(d=>{d.hidden=!!q&&!d.dataset.name.includes(q);}); }
 function togglePick(name){
   const a=arr("clubs"), i=a.indexOf(name);
-  if(i>=0){ a.splice(i,1); } else { if(a.length>=MAXC){ statusEl.textContent="동아리는 3개까지 고를 수 있어요. 먼저 하나를 빼 주세요."; return; } a.push(name); }
+  if(i>=0){ a.splice(i,1); } else { a.push(name); }
   setArr("clubs",a); save(); resetSend();
   const s=cur(); document.querySelectorAll("#clist .club").forEach(d=>{const c=s.clubs[+d.dataset.i]; const on=a.includes(c.n); d.dataset.on=on?1:0; const b=d.querySelector(".pickbtn"); b.textContent=on?"선택됨 ✓":"선택"; b.setAttribute("aria-pressed",on);});
   document.getElementById("chosen").innerHTML=chosenHtml(s);
-  document.getElementById("pickcount").textContent=a.length+" / "+MAXC+" 선택";
-  statusEl.textContent=a.length===MAXC?"동아리 3개를 모두 골랐어요. 노란 버튼을 눌러 제출하세요.":"동아리 "+a.length+"개 골랐어요 · "+(MAXC-a.length)+"개 더 고르세요";
+  document.getElementById("pickcount").textContent=a.length+"개 선택";
+  statusEl.textContent="동아리 "+a.length+"개 골랐어요"+(a.length<MAXC?" · 3개 정도 골라 보세요 (안 골라도 제출돼요)":" · 노란 버튼을 눌러 제출하세요");
 }
 form.addEventListener("click",e=>{
   const p=e.target.closest("[data-pick]"); if(p){ e.preventDefault(); const s=cur(); togglePick(s.clubs[+p.dataset.pick].n); return; }
@@ -752,7 +752,7 @@ function layout(){
     (subjRows.length?'<div class="jump">'+subjRows.map((r,i)=>'<span style="border-color:'+SUBJ_COL[i%SUBJ_COL.length]+'"><b>'+esc(r[0])+'</b> '+r[1]+'쪽</span>').join("")+'</div>':'')+
     evTable(s)+(miss.length&&(s.ev||[]).length?'<p class="src">※ 요약표에 없는 과목: '+esc(miss.join(", "))+' (원본에서 확인)</p>':'')+
     '<p class="src">다음 쪽부터 과목마다 ‘과목 첫 쪽’(요약)과 그 과목의 학교 원본이 이어져요.</p></div></div>';
-  H[clIdx]='<div class="pp sec">'+secHead("03","내가 고른 동아리","#2f8792",picked.length+"개 · 동아리마다 1쪽씩 자세한 설명")+'<div class="pbody"><div class="cpick">'+
+  H[clIdx]='<div class="pp sec">'+secHead("03","내가 고른 동아리","#2f8792",picked.length?picked.length+"개 · 동아리마다 1쪽씩 자세한 설명":"고른 동아리 없음")+'<div class="pbody">'+(picked.length?'':'<p class="note" style="font-size:16px">아직 고른 동아리가 없어요. 입학 후 동아리 안내를 받을 때 학교 홈페이지·학교알리미의 동아리 운영계획서를 확인해 보세요.</p>')+'<div class="cpick">'+
     picked.map((nm,k)=>{ const cl=(s.clubs||[]).find(x=>x.n===nm)||{n:nm,d:""};
       return '<div class="cp"><div class="cpn">'+(k+1)+'</div><div><b>'+esc(cl.n)+'</b>'+(cl.f?' <small>'+esc(cl.f)+'</small>':'')+'<p>'+esc((cl.d||"설명 자료 없음").slice(0,90))+((cl.d||"").length>90?"…":"")+'</p></div><div class="cpg">'+clubPg[k]+'쪽</div></div>'; }).join("")+'</div></div></div>';
   H[ftIdx]='<div class="pp sec">'+secHead("04","학교 특색사업","#b8860b",ftN?"학교가 공개한 교육운영 특색사업 계획 원본 "+ftN+"쪽":"")+'<div class="pbody"><div class="subhead">이 학교의 특색 프로그램</div>'+featList(s)+
@@ -900,7 +900,6 @@ pdfBtn.addEventListener("click",async()=>{
     if(!val("school")) miss.push({id:"f_school",label:"희망 고등학교 선택"});
     if(miss.length){ statusEl.textContent="아직 안 쓴 칸: "+miss.map(x=>x.label).join(", ")+" (오류가 아니에요. 먼저 써 주세요)"; SubmitKit.require(miss); return; } }
   if(!cur()) return goTo(val("school")===OWNKEY?"ownAnalyze":"f_school",val("school")===OWNKEY?"파일을 올리고 '이 내용으로 보고서 만들기'까지 눌러 주세요.":"희망 고등학교를 먼저 골라 주세요.");
-  if(arr("clubs").length<MAXC) return goTo("clubq","동아리를 3개 골라 주세요. (지금 "+arr("clubs").length+"개)");
   pdfBtn.disabled=true; let sent=false;
   SubmitKit.mark(QKEY,true);
   SubmitKit.show("내 보고서(표지·목차·평가 요약·과목 첫 쪽·동아리)를 만들어 선생님께 보내요.\n보통 30초~1분이면 끝나요.",statusEl);
