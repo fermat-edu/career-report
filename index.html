@@ -724,7 +724,10 @@ const A4H=1123, A4TOP=40, A4BOT=36;
 function a4Breaks(el,sc){
   const top=el.getBoundingClientRect().top, set=new Set();
   el.querySelectorAll(".pbody>*,.row,.q,.subhead,.grid2,.grid2 tr,.infoline,.note,.pimgs img,.box").forEach(e=>{
-    const r=e.getBoundingClientRect(); set.add(Math.round((r.top-top)*sc)); set.add(Math.round((r.bottom-top)*sc)); });
+    const r=e.getBoundingClientRect(), ps=e.previousElementSibling;
+    // 질문 제목·소제목만 쪽 끝에 홀로 남지 않게 (제목과 바로 아래 칸 사이에서는 자르지 않음)
+    if(!e.classList.contains("box")&&!(ps&&ps.classList.contains("subhead"))) set.add(Math.round((r.top-top)*sc));
+    if(!e.classList.contains("subhead")) set.add(Math.round((r.bottom-top)*sc)); });
   return [...set].sort((a,b)=>a-b);
 }
 function a4WhiteRow(cv,y0,y1){
