@@ -161,6 +161,21 @@ async function api(params){
 }
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const CLASSES=["페르마","탈레스","유클리드","뉴튼","S가우스","칸토르","데카르트2"]; // 반 순서
+/* 반 이름 줄임말·괄호 정리: "데카1"→"데카르트1", "페"→"페르마", "칸토르(D)"→"칸토르" */
+const CLS_ALIAS={"데카1":"데카르트1","데카2":"데카르트2","페":"페르마","페르":"페르마","탈":"탈레스","유클":"유클리드","칸":"칸토르","칸토":"칸토르"};
+function normCls(c){
+  c=String(c||"").replace(/\s+/g,"");
+  const pm=c.match(/^(.*?)\((.*?)\)$/);
+  if(pm){ const a=normCls(pm[1]), b=normCls(String(pm[2]).replace(/^\d+/,"").replace(/반$/,"")); return /[가-힣]/.test(a)?a:(b||a); }
+  return CLS_ALIAS[c]||c;
+}
+/* 고등학교 조사 보고서: 같은 학생(같은 학년·이름)의 진로탐구 보고서 반 이름으로 맞춰 같은 반으로 모음 */
+function unify(list){
+  const cr={}; list.forEach(f=>{ if(f.form==="진로탐구보고서"&&f.c!=="기타"){ const k=f.g+"|"+f.who.replace(/\s/g,""); (cr[k]=cr[k]||new Set()).add(f.c); } });
+  list.forEach(f=>{ if(f.form==="진로탐구보고서"||f.c==="기타") return; const st=cr[f.g+"|"+f.who.replace(/\s/g,"")];
+    if(st&&st.size===1){ const c=[...st][0]; if(c!==f.c){ f.c=c; f.cls=(f.g<99?f.g:"")+c+"반"; const ci=CLASSES.indexOf(c); f.ci=ci<0?100:ci; f.key=f.form+"|"+f.cls+"|"+f.who.replace(/\s/g,""); } } });
+  return list;
+}
 function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
   const reprint=/_\d{4}_\d{4}_\d{4}_\d{4}\.pdf$/i.test(f.name), orig=reprint?f.name.replace(/_\d{4}_\d{4}(\.pdf)$/i,"$1"):f.name;
   let base=orig.replace(/\.pdf$/i,"").replace(/_\d{4}_\d{4}$/,""), form="진로탐구보고서";
@@ -171,7 +186,7 @@ function parse(f){ // "2학년3반_홍길동_1102_2130.pdf"
   const normG=n=>{n=+n; return n>=1&&n<=3?n+6:n;};
   let g=99, c="기타", nm=base.replace(/_/g," ");
   if(m){ const raw=m[2].replace(/_/g,"").replace(/반$/,""), mm=raw.match(/^(\d+)(?:학년)?(.*)$/);
-    const cn=(mm?mm[2]:raw).replace(/[a-z]/g,x=>x.toUpperCase()), gd=(mm&&mm[1])||m[1];
+    const cn=normCls((mm?mm[2]:raw).replace(/[a-z]/g,x=>x.toUpperCase())), gd=(mm&&mm[1])||m[1];
     g=gd?normG(gd):99; if(cn) c=cn; nm=(m[3]||"이름없음").replace(/_/g," "); }
   const ci=CLASSES.indexOf(c);
   const cls=c==="기타"?"기타":(g<99?g:"")+c+"반";
@@ -198,7 +213,7 @@ async function dedupe(){
 async function login(){
   $("loginBtn").disabled=true; $("loginMsg").className="msg"; $("loginMsg").textContent="여는 중…";
   try{ const j=await api({action:"list"}); try{sessionStorage.setItem("teacherKey",KEY);}catch(e){}
-    FILES=j.files.map(parse); $("loginCard").hidden=true; $("main").hidden=false; $("logoutBtn").hidden=false; render(); await dedupe(); render(); }
+    FILES=unify(j.files.map(parse)); $("loginCard").hidden=true; $("main").hidden=false; $("logoutBtn").hidden=false; render(); await dedupe(); render(); }
   catch(e){ $("loginMsg").className="msg err";
     $("loginMsg").textContent=e.message==="password"?"비밀번호가 맞지 않아요. 구글 스크립트에 넣은 비밀번호를 확인해 주세요.":"제출함에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
     try{sessionStorage.removeItem("teacherKey");}catch(_){} }
@@ -256,7 +271,7 @@ $("years").addEventListener("click",e=>{const b=e.target.closest("[data-year]");
 $("list").addEventListener("toggle",e=>{const d=e.target; if(d.classList&&d.classList.contains("cls")) openState[YEAR+d.dataset.cls]=d.open;},true);
 $("q").addEventListener("input",render); $("onlyNew").addEventListener("change",render);
 $("refreshBtn").addEventListener("click",async()=>{ $("refreshBtn").disabled=true; $("msg").className="msg"; $("msg").textContent="새로 불러오는 중…";
-  try{ FILES=(await api({action:"list"})).files.map(parse); $("msg").textContent="최신 목록이에요 · "+fmtTime(Date.now()); await dedupe(); render(); }
+  try{ FILES=unify((await api({action:"list"})).files.map(parse)); $("msg").textContent="최신 목록이에요 · "+fmtTime(Date.now()); await dedupe(); render(); }
   catch(e){ $("msg").className="msg err"; $("msg").textContent="불러오지 못했어요. 다시 눌러 주세요."; }
   finally{ $("refreshBtn").disabled=false; } });
 
@@ -342,7 +357,7 @@ $("list").addEventListener("click",async e=>{
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({label,pdf:j.pdf})});
       const k=await r.json(); if(!k.ok) throw new Error(k.error||"fail");
       await api({action:"delete",id});
-      FILES=(await api({action:"list"})).files.map(parse); await dedupe(); render();
+      FILES=unify((await api({action:"list"})).files.map(parse)); await dedupe(); render();
       $("msg").textContent=f.who+" 학생을 "+g+c+"반으로 옮겼어요.";
     }catch(_){ $("msg").className="msg err"; $("msg").textContent="옮기지 못했어요. 새로고침 후 다시 해 주세요."; render(); }
     return; }
@@ -470,7 +485,7 @@ $("upGo").addEventListener("click",async()=>{
     }catch(e){ fail.push(who+(/pdfjs/.test(e.message)?" (PDF 그리기 도구를 못 불러옴)":/Invalid PDF|encrypt|password/i.test(e.message)?" (열 수 없는 PDF)":/34MB/.test(e.message)?" (34MB 초과)":"")); }
     bar.style.width=((i+1)/UPS.length*100)+"%";
   }
-  try{ FILES=(await api({action:"list"})).files.map(parse); await dedupe(); render(); }catch(_){}
+  try{ FILES=unify((await api({action:"list"})).files.map(parse)); await dedupe(); render(); }catch(_){}
   $("prog").hidden=true; btns.forEach(b=>b.disabled=false);
   UPS=UPS.filter(u=>fail.some(f=>f.indexOf(u.c+" "+u.n)===0)); drawUps();
   $("msg").className="msg"+(fail.length?" err":"");
