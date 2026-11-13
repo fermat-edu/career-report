@@ -37,6 +37,15 @@
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
   /* 보내기: 성공하면 true. 화면이 잠겨 끊기면 다시 열릴 때 자동으로 다시 보냄 */
+  /* 선생님 제출함에 방금 낸 파일이 있는지 (확인 기능이 없는 예전 서버면 null) */
+  async function arrived(url,label,tries){
+    for(let i=0;i<(tries||2);i++){
+      await sleep(i?4000:2500);
+      try{ const j=await (await fetch(url+"?action=check&label="+encodeURIComponent(label)+"&t="+Date.now())).json();
+        if(j&&j.found) return true; if(!j||j.found===undefined) return null; }catch(e){}
+    }
+    return false;
+  }
   async function post(url,key,label,blob,statusEl){
     const rec={label,blob,time:Date.now()};
     try{ await put(key,rec); }catch(e){}
@@ -54,9 +63,12 @@
         await del(key).catch(()=>{}); return true;
       }catch(e){
         document.removeEventListener("visibilitychange",onHide);
+        // 응답을 못 읽었을 때: 실제로 선생님 제출함에 도착했는지 확인한 뒤에만 '완료'로 처리
+        if(statusEl) statusEl.textContent="제출이 도착했는지 확인하는 중…";
+        if(await arrived(url,label)){ await del(key).catch(()=>{}); return true; }
         if(e instanceof TypeError && !hiddenDuring && navigator.onLine!==false){
-          // 응답만 못 읽은 경우가 많아요: 응답 없이 한 번 보내기
-          try{ await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body}); await del(key).catch(()=>{}); return true; }catch(_){}
+          try{ await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body}); }catch(_){}
+          if(await arrived(url,label,4)){ await del(key).catch(()=>{}); return true; }
         }
         if(tryN===4) return false;
         if(statusEl) statusEl.textContent=hiddenDuring?"화면이 잠겨서 멈췄어요. 다시 열면 이어서 보내요.":"연결이 끊겼어요. 잠시 뒤 다시 보내요…";

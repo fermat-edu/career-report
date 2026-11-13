@@ -45,6 +45,11 @@ function doGet(e){const p=e.parameter||{};
       else if(/_(eval|feat)\.pdf$/.test(n)) pdfs[n.replace(/\.pdf$/,'')]=f.getId(); }
     list.forEach(x=>{x.evalId=pdfs[x.name+'_eval']||'';x.featId=pdfs[x.name+'_feat']||'';});
     return out_({ok:true,schools:list}); }
+  if(p.action==='check'){ // 학생: 방금 낸 파일이 실제로 도착했는지 확인 (정확한 이름이 있어야 함, 최근 2시간)
+    const pre=String(p.label||'').replace(/[\\/:*?"<>|]/g,'').slice(0,60)+'_'; if(pre.length<6) return out_({ok:false});
+    const lim=Date.now()-7200000, fs=folder_().searchFiles('title contains "'+pre.replace(/"/g,'')+'"');
+    while(fs.hasNext()){ const f=fs.next(); if(f.getName().indexOf(pre)===0&&f.getDateCreated().getTime()>lim) return out_({ok:true,found:true,size:f.getSize()}); }
+    return out_({ok:true,found:false}); }
   if(p.action==='schooldoc'){ const f=DriveApp.getFileById(p.id); if(!inFolder_(f,sfolder_())) return out_({ok:false,error:'not found'});
     return out_({ok:true,pdf:Utilities.base64Encode(f.getBlob().getBytes())}); }
   if(p.key!==TEACHER_KEY) return out_({ok:false,error:'password'});
